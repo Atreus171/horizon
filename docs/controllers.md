@@ -1037,7 +1037,9 @@ ids.
 - **Trigger levels.** The triggers feel where the action is: a broken block
   buzzes both, an explosion and a totem both, a hit both (the handles carry it
   too), and the radial menu's ticks neither. The broken block's tick is one
-  fixed level, 35% on all four motors, so every block feels the same.
+  fixed level: the grips at 60% for 120 ms, the triggers at 35%, so every block
+  feels the same and all four motors answer. 35% on the grips for 100 ms sat
+  below what those motors deliver, and only the triggers buzzed.
   **Impulse Triggers** (`impulseTriggers:`, on by default) stops the trigger
   motors and leaves the handles; **Block Vibration** (`blockVibration:`)
   turns off the broken block's tick.

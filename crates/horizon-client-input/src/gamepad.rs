@@ -1632,14 +1632,15 @@ impl Rumble {
             }),
             Rumble::Hurt(_) => None,
             // Attack is the right trigger by default, but both thumbs are on the pad: the broken
-            // block buzzes all four motors at one fixed level, 35%, so the tick feels the same
-            // on every block instead of varying with the handles and triggers. Long enough to
-            // feel on a Bluetooth pad, which takes a report about every 50 ms.
+            // block buzzes all four motors. The grips use the level and length a hit's first step
+            // proved felt (0.7 / 0.6 for 120 ms): 35% for 100 ms sat below what the grip motors
+            // answer, so only the triggers buzzed. The triggers stay at 35%, where they are light
+            // and answer at once. One fixed level, so every block feels the same.
             Rumble::BlockBroken => Some(Pulse {
-                strong: 0.35,
-                weak: 0.35,
+                strong: 0.6,
+                weak: 0.6,
                 triggers: [0.35, 0.35],
-                millis: 100,
+                millis: 120,
             }),
             Rumble::Explosion { distance, radius } => {
                 // Felt up to four times the blast radius, fading with distance.
@@ -2660,10 +2661,10 @@ bind_key.hotbar.2:north
             None
         );
         let broken = Rumble::BlockBroken.pulse().unwrap();
-        // One fixed level, all four motors: every block ticks alike at 35%.
+        // One fixed level: the grips at a level a hit is felt at, the triggers at 35%.
         assert_eq!(
-            (broken.strong, broken.weak, broken.triggers),
-            (0.35, 0.35, [0.35, 0.35])
+            (broken.strong, broken.weak, broken.triggers, broken.millis),
+            (0.6, 0.6, [0.35, 0.35], 120)
         );
         // Shapes open at the pulse's strength and fade; nothing for what isn't felt.
         for rumble in [
@@ -2705,7 +2706,7 @@ bind_key.hotbar.2:north
 
     #[test]
     fn the_trigger_motors_buzz_where_the_action_is() {
-        // Both triggers: the broken block is felt in each hand, and both handles carry it too.
+        // The broken block is felt in each grip and in each trigger.
         let broken = Rumble::BlockBroken.pulse().unwrap();
         assert_eq!(broken.triggers, [0.35, 0.35]);
         assert!(broken.strong > 0.0 && broken.weak > 0.0);

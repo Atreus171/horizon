@@ -1037,14 +1037,14 @@ mod xbox_output_tests {
     #[test]
     fn the_trigger_motors_follow_the_pulse_unless_turned_off() {
         let on = xbox_steps(Rumble::BlockBroken, true);
-        // All four at one fixed 35%: both triggers and both grips.
+        // One fixed level: the grips at the level a hit is felt at, the triggers at 35%.
         assert_eq!(on[0].0.left_trigger, 89);
         assert_eq!(on[0].0.right_trigger, 89);
-        assert_eq!(on[0].0.strong, 89);
-        assert_eq!(on[0].0.weak, 89);
+        assert_eq!(on[0].0.strong, 153);
+        assert_eq!(on[0].0.weak, 153);
         let off = xbox_steps(Rumble::BlockBroken, false);
         assert_eq!([off[0].0.left_trigger, off[0].0.right_trigger], [0, 0]);
-        assert_eq!([off[0].0.strong, off[0].0.weak], [89, 89]);
+        assert_eq!([off[0].0.strong, off[0].0.weak], [153, 153]);
     }
 
     #[test]
