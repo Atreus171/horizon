@@ -9911,6 +9911,7 @@ impl Game<'_> {
         if let [(Some(slot), button, input)] = ops {
             self.crafter_slot_clicked(*slot, *button, *input);
         }
+        let split = self.split_click(ops);
         let (container, menu) = self.remote_menu();
         let mut clicks = Vec::with_capacity(ops.len());
         for &(slot, button, input) in ops {
@@ -9940,6 +9941,13 @@ impl Game<'_> {
             Some(true)
         });
         self.send_clicks(container, sent);
+        // The pad's own click, and only the pad's: the mouse's split doesn't buzz.
+        if self.input_made_pointer_event()
+            && let Some(split) = split
+            && self.split_done(split)
+        {
+            self.input_feedback(horizon_client::input_source::Feedback::ItemStackSplit);
+        }
         // LivingEntity.drop(.., Prediction.PREDICTED): the client swings its own
         // main hand; the server shows the swing only to the other players.
         if threw {

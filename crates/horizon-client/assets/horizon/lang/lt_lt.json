@@ -1054,8 +1054,10 @@
   "horizon.studio.topbar.clear_keyframes": "🗑 Išvalyti raktinius kadrus",
   "horizon.studio.topbar.timeline_hud": "⏱ Laiko juosta",
   "horizon.studio.topbar.split_scene": "Skirti sceną",
-  "horizon.options.block_vibration": "Vibracija laužant blokus",
+  "horizon.options.block_vibration": "Bedrock haptinis atsiliepimas",
+  "horizon.options.split_vibration": "Vibracija dalijant krūvą",
   "horizon.options.impulse_triggers": "Impulsiniai gaidukai",
   "A tick when you break a block, as in Bedrock.": "Kai sulaužote bloką, jis vibruoja, kaip Bedrock.",
+  "A short buzz when you split a stack, as in Bedrock.": "Trumpa vibracija dalijant krūvą, kaip Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "„Xbox One“ pultelio gaidukai vibruoja kartu su jo rankenomis."
 }

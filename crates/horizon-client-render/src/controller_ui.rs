@@ -70,6 +70,8 @@ pub enum Item {
 pub enum Switch {
     /// A broken block ticks the pad, as in Bedrock.
     BlockVibration,
+    /// Splitting a stack buzzes briefly, as in Bedrock.
+    SplitVibration,
     /// An Xbox One pad's impulse triggers buzz with its handles.
     ImpulseTriggers,
 }
@@ -78,18 +80,21 @@ impl Switch {
     fn caption(self) -> &'static str {
         match self {
             Switch::BlockVibration => "horizon.options.block_vibration",
+            Switch::SplitVibration => "horizon.options.split_vibration",
             Switch::ImpulseTriggers => "horizon.options.impulse_triggers",
         }
     }
     fn on(self, s: &Settings) -> bool {
         match self {
             Switch::BlockVibration => s.controller.block_vibration,
+            Switch::SplitVibration => s.controller.split_vibration,
             Switch::ImpulseTriggers => s.controller.impulse_triggers,
         }
     }
     fn toggle(self, s: &mut Settings) {
         match self {
             Switch::BlockVibration => s.controller.block_vibration = !s.controller.block_vibration,
+            Switch::SplitVibration => s.controller.split_vibration = !s.controller.split_vibration,
             Switch::ImpulseTriggers => {
                 s.controller.impulse_triggers = !s.controller.impulse_triggers
             }
@@ -359,6 +364,10 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                             "A tick when you break a block, as in Bedrock.",
                         ),
                         switch(
+                            Switch::SplitVibration,
+                            "A short buzz when you split a stack, as in Bedrock.",
+                        ),
+                        switch(
                             Switch::ImpulseTriggers,
                             "An Xbox One controller's triggers buzz with its handles.",
                         ),
@@ -413,6 +422,7 @@ impl Item {
             Item::Option(Opt::PadEnabled) => Some(c.enabled),
             Item::Option(Opt::PadVibration) => Some(c.vibration),
             Item::Switch(Switch::BlockVibration) => Some(c.block_vibration),
+            Item::Switch(Switch::SplitVibration) => Some(c.split_vibration),
             Item::Switch(Switch::ImpulseTriggers) => Some(c.impulse_triggers),
             Item::Option(Opt::PadPlayInBackground) => Some(c.play_in_background),
             Item::Option(Opt::PadAdaptiveTriggers) => Some(c.adaptive_triggers),
@@ -765,7 +775,11 @@ mod tests {
         ] {
             assert!(items.contains(&Item::Option(opt)), "{opt:?}");
         }
-        for setting in [Switch::BlockVibration, Switch::ImpulseTriggers] {
+        for setting in [
+            Switch::BlockVibration,
+            Switch::SplitVibration,
+            Switch::ImpulseTriggers,
+        ] {
             assert!(items.contains(&Item::Switch(setting)), "{setting:?}");
         }
     }
@@ -776,10 +790,19 @@ mod tests {
         let mut s = Settings::default();
         let mut ui = ui(Page::Device);
         draw(&mut ui, &s, None);
-        let item = Item::Switch(Switch::BlockVibration);
-        let at = ui.point_at(&s, SIZE, item);
-        ui.click(&mut s, at, SIZE, false, false, false);
-        assert!(!s.controller.block_vibration && ui.changed());
+        for (item, read) in [
+            (
+                Item::Switch(Switch::BlockVibration),
+                (|s: &Settings| s.controller.block_vibration) as fn(&Settings) -> bool,
+            ),
+            (Item::Switch(Switch::SplitVibration), |s: &Settings| {
+                s.controller.split_vibration
+            }),
+        ] {
+            let at = ui.point_at(&s, SIZE, item);
+            ui.click(&mut s, at, SIZE, false, false, false);
+            assert!(!read(&s) && ui.changed(), "{item:?}");
+        }
     }
 
     /// Undo comes with a change, the game's binding of a button too, and goes when a value is

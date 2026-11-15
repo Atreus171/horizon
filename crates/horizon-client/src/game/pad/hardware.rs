@@ -233,15 +233,27 @@ fn play_pulse(
 }
 
 /// The steps an Xbox One pad's own output plays: all four motors, with the triggers zeroed when
-/// the player turned Impulse Triggers off.
+/// the player turned Impulse Triggers off. A hit holds one flat step at the pulse's level: its
+/// shape's fade dropped the handles to levels the grip motors do not answer, so a hit played in
+/// the triggers alone. A flat step gives the handles the whole pulse to spin up.
 fn xbox_steps(rumble: Rumble, impulse: bool) -> Vec<(xbox::Motors, Duration)> {
+    let triggers = |pulse: gamepad::Pulse| {
+        if impulse { pulse.triggers } else { [0.0; 2] }
+    };
+    if let Rumble::Hurt(_) = rumble
+        && let Some(p) = rumble.pulse()
+    {
+        return vec![(
+            xbox::Motors::levels(p.strong, p.weak, triggers(p)),
+            Duration::from_millis(u64::from(p.millis)),
+        )];
+    }
     rumble
         .shape()
         .into_iter()
         .map(|step| {
-            let triggers = if impulse { step.triggers } else { [0.0; 2] };
             (
-                xbox::Motors::levels(step.strong, step.weak, triggers),
+                xbox::Motors::levels(step.strong, step.weak, triggers(step)),
                 Duration::from_millis(u64::from(step.millis)),
             )
         })
@@ -485,6 +497,17 @@ pub(in crate::game) struct PadRouter {
     rumbles: Vec<(gilrs::ff::Effect, Instant)>,
     /// The furthest each pad's sticks leant since the last `events` (`Pads::peaks`).
     peaks: Vec<(PadId, [[f32; 2]; 2])>,
+    /// Each player's own Xbox output while several play: gilrs' force feedback has no trigger
+    /// motors, so a guest's vibration would move the grips alone. One link per pad, dropped
+    /// when the pad goes or the router hands the reader back.
+    xbox: Vec<(PadId, xbox::Link)>,
+}
+
+/// The pad `id` as the Xbox writer names it, if the Xbox path takes it (a DualSense has its own
+/// output). `None` for a pad the writer can't drive.
+fn xbox_pad_target(gilrs: &gilrs::Gilrs, id: PadId) -> Option<xbox::Target> {
+    let pad = gilrs.connected_gamepad(id)?;
+    is_xbox_pad(&pad).then(|| xbox_target(gilrs, id)).flatten()
 }
 
 impl PadRouter {
@@ -502,20 +525,77 @@ impl PadRouter {
     }
 
     /// Play on pad `id` what its player's turn asked for, and let finished vibrations go.
-    pub(in crate::game) fn play_rumbles(&mut self, pads: &mut Pads, id: Option<PadId>) {
+    /// `guest`: the player's game has no output path of its own (a splitscreen guest), so the
+    /// router drives the pad's four motors itself; P1, in its turn, drives its own. `impulse` is
+    /// that player's Impulse Triggers setting.
+    pub(in crate::game) fn play_rumbles(
+        &mut self,
+        pads: &mut Pads,
+        id: Option<PadId>,
+        impulse: bool,
+        guest: bool,
+    ) {
         let now = Instant::now();
         self.rumbles.retain(|(_, end)| *end > now);
         let pulses = std::mem::take(&mut pads.devices.routed_rumbles);
-        let (Some(gilrs), Some(id)) = (self.gilrs.as_mut(), id) else {
+        let Some(id) = id else {
             return;
         };
-        self.rumbles
-            .extend(pulses.into_iter().filter_map(|p| play_pulse(gilrs, id, p)));
+        // P1's turn lends its game the pad's own output, which plays the pulse on all four
+        // motors already: opening the pad a second time here would fight it.
+        if !guest || pads.devices.xbox_output.is_some() {
+            if !pulses.is_empty()
+                && let Some(gilrs) = self.gilrs.as_mut()
+            {
+                self.rumbles
+                    .extend(pulses.into_iter().filter_map(|p| play_pulse(gilrs, id, p)));
+            }
+            return;
+        }
+        let Some(target) = self.gilrs.as_ref().and_then(|g| xbox_pad_target(g, id)) else {
+            // A pad the Xbox output can't drive (a DualSense): gilrs' force feedback still
+            // buzzes its grips.
+            if !pulses.is_empty()
+                && let Some(gilrs) = self.gilrs.as_mut()
+            {
+                self.rumbles
+                    .extend(pulses.into_iter().filter_map(|p| play_pulse(gilrs, id, p)));
+            }
+            return;
+        };
+        // Open the pad on a frame it isn't vibrating too: a link started on the pulse's own
+        // frame has to find the pad first, and a slow one would lose that first vibration.
+        let index = match self.xbox.iter().position(|(pad, _)| *pad == id) {
+            Some(index) => index,
+            None => {
+                self.xbox.push((id, xbox::Link::start(target)));
+                self.xbox.len() - 1
+            }
+        };
+        if pulses.is_empty() {
+            return;
+        }
+        let open = self.xbox[index].1.open().is_some();
+        for pulse in &pulses {
+            let triggers = if impulse { pulse.triggers } else { [0.0; 2] };
+            self.xbox[index].1.rumble(vec![(
+                xbox::Motors::levels(pulse.strong, pulse.weak, triggers),
+                Duration::from_millis(u64::from(pulse.millis)),
+            )]);
+        }
+        // A link still looking for the pad can't buzz this pulse yet: gilrs' force feedback
+        // carries its grips now, and the link plays it too if the pad answers in time.
+        if !open && let Some(gilrs) = self.gilrs.as_mut() {
+            self.rumbles
+                .extend(pulses.into_iter().filter_map(|p| play_pulse(gilrs, id, p)));
+        }
     }
 
     /// Routing ends: P1 gets the reader back, open as it was.
     pub(in crate::game) fn hand_back(&mut self, pads: &mut Pads) {
         self.started = false;
+        // Its players' own outputs stop with it: dropping a link stops its motors.
+        self.xbox.clear();
         pads.devices.routed = None;
         if let Some(gilrs) = self.gilrs.take() {
             pads.devices.gilrs = Some(gilrs);
@@ -529,6 +609,9 @@ impl PadRouter {
         if pads.devices.gilrs.is_some() {
             pads.release_hardware();
         }
+        // That player's game opens its own output now: a link kept here would write to the same
+        // pad twice (exclusive over HID).
+        self.xbox.retain(|(pad, _)| *pad != id);
         if pads.devices.active != Some(id) {
             pads.devices.rumbles.clear();
             pads.devices.output = None;
@@ -595,6 +678,8 @@ impl PadRouter {
                 }
                 gilrs::EventType::Disconnected => {
                     log::info!("Controller disconnected: {}", gilrs.gamepad(id).name());
+                    // Its own output goes with it: a link on the old one buzzes nothing.
+                    self.xbox.retain(|(pad, _)| *pad != id);
                     events.push(PadEvent::Gone(id));
                 }
                 gilrs::EventType::Connected => events.push(PadEvent::Back(id)),
@@ -920,7 +1005,7 @@ mod one_reader_tests {
             triggers: [0.0, 0.0],
             millis: 100,
         });
-        PadRouter::default().play_rumbles(&mut pads, None);
+        PadRouter::default().play_rumbles(&mut pads, None, true, true);
         assert!(pads.devices.routed_rumbles.is_empty(), "it can't queue up");
     }
 
@@ -1049,7 +1134,12 @@ mod xbox_output_tests {
 
     #[test]
     fn a_hit_drives_all_four_motors_hard() {
-        let motors = xbox_steps(Rumble::Hurt(4.0), true)[0].0;
+        // One flat step for the whole pulse: the shaped fade dropped the handles below what
+        // the grip motors answer, so a hit played in the triggers alone.
+        let steps = xbox_steps(Rumble::Hurt(4.0), true);
+        assert_eq!(steps.len(), 1);
+        let (motors, length) = steps[0];
+        assert_eq!(length, Duration::from_millis(280));
         assert!(motors.strong >= 178, "the heavy handle: {}", motors.strong);
         assert!(motors.weak >= 153, "the light handle: {}", motors.weak);
         assert_eq!([motors.left_trigger, motors.right_trigger], [166, 166]);
