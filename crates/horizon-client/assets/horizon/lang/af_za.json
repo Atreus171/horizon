@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "Nie geaffilieer met Mojang of Microsoft nie",
   "key.emote": "Emotewiel",
   "horizon.options.block_vibration": "Haptiese terugvoer van Bedrock",
-  "horizon.options.split_vibration": "Verdeelvibrasie",
   "horizon.options.impulse_triggers": "Impulssnellers",
-  "A tick when you break a block, as in Bedrock.": "Wanneer jy 'n blok breek, vibreer dit, soos in Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Wanneer jy 'n stapel verdeel, vibreer dit kort, soos in Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Wanneer jy 'n blok breek, vibreer dit, soos in Bedrock. Wanneer jy 'n stapel verdeel, vibreer dit kort, soos in Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "'n Xbox One-beheerder se snellers vibreer saam met sy handvatsels."
 }

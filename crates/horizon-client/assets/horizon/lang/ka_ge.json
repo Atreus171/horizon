@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "არ არის დაკავშირებული Mojang-თან ან Microsoft-თან",
   "key.emote": "ემოციების ბორბალი",
   "horizon.options.block_vibration": "ჰაპტური უკუკავშირი Bedrock-იდან",
-  "horizon.options.split_vibration": "ვიბრაცია დასტის გაყოფისას",
   "horizon.options.impulse_triggers": "იმპულსური ტრიგერები",
-  "A tick when you break a block, as in Bedrock.": "როცა ბლოკს ატეხავ, ის ვიბრირებს, როგორც Bedrock-ში.",
-  "A short buzz when you split a stack, as in Bedrock.": "მოკლე ვიბრაცია დასტის გაყოფისას, როგორც Bedrock-ში.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "როცა ბლოკს ატეხავ, ის ვიბრირებს, როგორც Bedrock-ში. მოკლე ვიბრაცია დასტის გაყოფისას, როგორც Bedrock-ში.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One კონტროლერის ტრიგერები მის სახელურებთან ერთად ვიბრირებს."
 }

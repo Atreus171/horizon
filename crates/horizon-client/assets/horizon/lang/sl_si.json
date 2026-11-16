@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "Ni povezan z Mojangom ali Microsoftom",
   "key.emote": "Kolo izrazov",
   "horizon.options.block_vibration": "Haptična povratna informacija iz Bedrocka",
-  "horizon.options.split_vibration": "Vibracija pri deljenju kupa",
   "horizon.options.impulse_triggers": "Impulzni sprožilci",
-  "A tick when you break a block, as in Bedrock.": "Ko razbijete blok, ta vibrira, kot v Bedrocku.",
-  "A short buzz when you split a stack, as in Bedrock.": "Kratek tresljaj, ko razdelite kup, kot v Bedrocku.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Ko razbijete blok, ta vibrira, kot v Bedrocku. Kratek tresljaj, ko razdelite kup, kot v Bedrocku.",
   "An Xbox One controller's triggers buzz with its handles.": "Sprožilci krmilnika Xbox One vibrirajo skupaj z njegovimi ročaji."
 }

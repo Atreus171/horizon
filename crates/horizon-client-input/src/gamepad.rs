@@ -649,10 +649,9 @@ pub struct PadSettings {
     pub adaptive_triggers: bool,
     /// An Xbox One pad's impulse triggers buzz with the handles (docs/controllers.md).
     pub impulse_triggers: bool,
-    /// A broken block ticks the pad, as in Bedrock (docs/controllers.md).
+    /// A broken block ticks the pad and splitting a stack buzzes, as in Bedrock
+    /// (docs/controllers.md).
     pub block_vibration: bool,
-    /// Splitting a stack buzzes briefly, as in Bedrock (docs/controllers.md).
-    pub split_vibration: bool,
     pub lightbar: Lightbar,
     /// 0..1; 0.5 is the default speed, 1 twice that.
     pub look_sensitivity: f32,
@@ -708,7 +707,6 @@ impl Default for PadSettings {
             adaptive_triggers: true,
             impulse_triggers: true,
             block_vibration: true,
-            split_vibration: true,
             lightbar: Lightbar::Health,
             look_sensitivity: 0.5,
             invert_x: false,
@@ -791,7 +789,6 @@ impl PadSettings {
                 "adaptiveTriggers" => s.adaptive_triggers = flag(s.adaptive_triggers),
                 "impulseTriggers" => s.impulse_triggers = flag(s.impulse_triggers),
                 "blockVibration" => s.block_vibration = flag(s.block_vibration),
-                "splitVibration" => s.split_vibration = flag(s.split_vibration),
                 "lightbar" => s.lightbar = Lightbar::parse(value),
                 "lookSensitivity" => s.look_sensitivity = unit(s.look_sensitivity),
                 "invertX" => s.invert_x = flag(s.invert_x),
@@ -907,13 +904,12 @@ impl PadSettings {
     }
     pub fn serialize(&self) -> String {
         let mut text = format!(
-            "enabled:{}\nvibration:{}\nadaptiveTriggers:{}\nimpulseTriggers:{}\nblockVibration:{}\nsplitVibration:{}\nlightbar:{}\nlookSensitivity:{}\ninvertX:{}\ninvertY:{}\nmoveDeadzone:{}\nlookDeadzone:{}\ntriggerThreshold:{}\ntoggleSneak:{}\nglyphs:{}\nnintendoLetters:{}\nkeyboard:{}\n",
+            "enabled:{}\nvibration:{}\nadaptiveTriggers:{}\nimpulseTriggers:{}\nblockVibration:{}\nlightbar:{}\nlookSensitivity:{}\ninvertX:{}\ninvertY:{}\nmoveDeadzone:{}\nlookDeadzone:{}\ntriggerThreshold:{}\ntoggleSneak:{}\nglyphs:{}\nnintendoLetters:{}\nkeyboard:{}\n",
             bool_text(self.enabled),
             bool_text(self.vibration),
             bool_text(self.adaptive_triggers),
             bool_text(self.impulse_triggers),
             bool_text(self.block_vibration),
-            bool_text(self.split_vibration),
             self.lightbar.name(),
             self.look_sensitivity,
             bool_text(self.invert_x),
@@ -2773,27 +2769,20 @@ bind_key.hotbar.2:north
     #[test]
     fn impulse_triggers_and_block_vibration_are_on_until_saved_off() {
         let settings = PadSettings::default();
-        assert!(settings.impulse_triggers && settings.block_vibration && settings.split_vibration);
-        let off = PadSettings::parse(
-            "impulseTriggers:false\nblockVibration:false\nsplitVibration:false\n",
-        );
-        assert!(!off.impulse_triggers && !off.block_vibration && !off.split_vibration);
+        assert!(settings.impulse_triggers && settings.block_vibration);
+        let off = PadSettings::parse("impulseTriggers:false\nblockVibration:false\n");
+        assert!(!off.impulse_triggers && !off.block_vibration);
         assert!(
             off.serialize()
-                .contains("impulseTriggers:false\nblockVibration:false\nsplitVibration:false\n")
+                .contains("impulseTriggers:false\nblockVibration:false\n")
         );
         assert_eq!(PadSettings::parse(&off.serialize()), off);
     }
 
-    /// The split's tick has its own switch, so turning it off leaves the broken block's tick on,
-    /// and it is lighter and shorter than the block's.
+    /// One switch covers both Bedrock-like ticks (a broken block and a split); the split is
+    /// lighter and shorter than the block's.
     #[test]
-    fn a_split_has_its_own_switch_and_a_shorter_buzz_than_a_block() {
-        let off = PadSettings::parse("splitVibration:false\n");
-        assert!(!off.split_vibration);
-        assert!(off.block_vibration, "the block tick has its own switch");
-        assert_eq!(PadSettings::parse(&off.serialize()), off);
-
+    fn a_split_buzzes_lighter_and_shorter_than_a_block() {
         let split = Rumble::ItemStackSplit.pulse().unwrap();
         let broken = Rumble::BlockBroken.pulse().unwrap();
         assert!(split.millis < broken.millis);

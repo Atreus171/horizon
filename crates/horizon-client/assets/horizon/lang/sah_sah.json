@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "Mojang эбэтэр Microsoft кытта сибээһэ суох",
   "key.emote": "Эмоциялар төгүрүмэччитэ",
   "horizon.options.block_vibration": "Bedrockтан хаптик эппиэт",
-  "horizon.options.split_vibration": "Бөлөҕү араарыы вибрацията",
   "horizon.options.impulse_triggers": "Импульс триггердар",
-  "A tick when you break a block, as in Bedrock.": "Блоктары алдьаттахха, Bedrock курдук дыгыйар.",
-  "A short buzz when you split a stack, as in Bedrock.": "Бөлөҕү араардаҕын аҕыйахтык вибрацияланар, Bedrock курдук.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Блоктары алдьаттахха, Bedrock курдук дыгыйар. Бөлөҕү араардаҕын аҕыйахтык вибрацияланар, Bedrock курдук.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One контроллер триггердара туттардарын кытта дыгыйаллар."
 }

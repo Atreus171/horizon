@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "Mojang அல்லது Microsoft உடன் இணைக்கப்படவில்லை",
   "key.emote": "எமோட் சக்கரம்",
   "horizon.options.block_vibration": "Bedrock இலிருந்து ஹாப்டிக் பின்னூட்டம்",
-  "horizon.options.split_vibration": "ஸ்டாக் பிரிக்கும்போது அதிர்வு",
   "horizon.options.impulse_triggers": "இம்பல்ஸ் தூண்டிகள்",
-  "A tick when you break a block, as in Bedrock.": "நீங்கள் ஒரு தொகுதியை உடைக்கும்போது அது Bedrock போல அதிரும்.",
-  "A short buzz when you split a stack, as in Bedrock.": "ஸ்டாக்கைப் பிரிக்கும்போது சிறு அதிர்வு, Bedrock போல.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "நீங்கள் ஒரு தொகுதியை உடைக்கும்போது அது Bedrock போல அதிரும். ஸ்டாக்கைப் பிரிக்கும்போது சிறு அதிர்வு, Bedrock போல.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One கட்டுப்படுத்தியின் தூண்டிகள் அதன் பிடிகளுடன் சேர்ந்து அதிரும்."
 }

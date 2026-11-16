@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "Não associado à Mojang ou à Microsoft",
   "key.emote": "Roda de emotes",
   "horizon.options.block_vibration": "Feedback háptico da bedrock",
-  "horizon.options.split_vibration": "Vibração ao dividir pilha",
   "horizon.options.impulse_triggers": "Gatilhos de impulso",
-  "A tick when you break a block, as in Bedrock.": "Quando você quebra um bloco ele vibra, como no Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Uma vibração curta quando divide uma pilha, como no Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Quando você quebra um bloco ele vibra, como no Bedrock. Uma vibração curta quando divide uma pilha, como no Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "Os gatilhos de um comando Xbox One vibram juntamente com as pegas."
 }

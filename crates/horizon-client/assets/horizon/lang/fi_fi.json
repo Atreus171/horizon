@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "Ei sidoksissa Mojangiin tai Microsoftiin",
   "key.emote": "Emotepyörä",
   "horizon.options.block_vibration": "Bedrockin haptinen palaute",
-  "horizon.options.split_vibration": "Pinon jakamisen värinä",
   "horizon.options.impulse_triggers": "Impulssiliipaisimet",
-  "A tick when you break a block, as in Bedrock.": "Kun rikot lohkon, se värisee, kuten Bedrockissa.",
-  "A short buzz when you split a stack, as in Bedrock.": "Lyhyt värinä, kun jaat pinon, kuten Bedrockissa.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Kun rikot lohkon, se värisee, kuten Bedrockissa. Lyhyt värinä, kun jaat pinon, kuten Bedrockissa.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One -ohjaimen liipaisimet värisevät sen kahvojen kanssa."
 }

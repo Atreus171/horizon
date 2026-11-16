@@ -1043,9 +1043,7 @@
   "horizon.title.not_affiliated": "به Mojang یا Microsoft وابسته نیست",
   "key.emote": "چرخ ایموت",
   "horizon.options.block_vibration": "بازخورد لمسی از Bedrock",
-  "horizon.options.split_vibration": "لرزش تقسیم دسته",
   "horizon.options.impulse_triggers": "ماشه‌های ضربه‌ای",
-  "A tick when you break a block, as in Bedrock.": "وقتی بلوکی را می‌شکنید، مانند Bedrock می‌لرزد.",
-  "A short buzz when you split a stack, as in Bedrock.": "هنگام تقسیم یک دسته، مانند Bedrock، کوتاه می‌لرزد.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "وقتی بلوکی را می‌شکنید، مانند Bedrock می‌لرزد. هنگام تقسیم یک دسته، مانند Bedrock، کوتاه می‌لرزد.",
   "An Xbox One controller's triggers buzz with its handles.": "ماشه‌های دسته Xbox One همراه با دسته‌های آن می‌لرزند."
 }

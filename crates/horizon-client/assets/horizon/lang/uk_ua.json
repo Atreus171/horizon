@@ -1137,9 +1137,7 @@
   "horizon.title.not_affiliated": "Не пов’язано з Mojang чи Microsoft",
   "key.emote": "Колесо емоцій",
   "horizon.options.block_vibration": "Гаптичний відгук від Bedrock",
-  "horizon.options.split_vibration": "Вібрація при розділенні стосу",
   "horizon.options.impulse_triggers": "Імпульсні курки",
-  "A tick when you break a block, as in Bedrock.": "Коли ви руйнуєте блок, він вібрує, як у Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Стіс коротко вібрує при розділенні, як у Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Коли ви руйнуєте блок, він вібрує, як у Bedrock. Стіс коротко вібрує при розділенні, як у Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "Курки контролера Xbox One вібрують разом із його ручками."
 }
