@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Mojang же Microsoft менен байланышы жок",
   "key.emote": "Эмоция дөңгөлөгү",
   "horizon.options.block_vibration": "Bedrockтан хаптикалык кайтарым байланыш",
-  "horizon.options.split_vibration": "Үймөктү бөлүүдөгү титирөө",
   "horizon.options.impulse_triggers": "Импульстук триггерлер",
-  "A tick when you break a block, as in Bedrock.": "Блокту сындырганда ал Bedrock сыяктуу титирейт.",
-  "A short buzz when you split a stack, as in Bedrock.": "Үймөктү бөлгөндө кыскача титирейт, Bedrockтагыдай.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Блокту сындырганда ал Bedrock сыяктуу титирейт. Үймөктү бөлгөндө кыскача титирейт, Bedrockтагыдай.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One контроллеринин триггерлери анын туткалары менен бирге титирейт."
 }

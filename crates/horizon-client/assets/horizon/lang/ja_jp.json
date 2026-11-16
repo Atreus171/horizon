@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Mojang や Microsoft とは関係ありません",
   "key.emote": "エモートホイール",
   "horizon.options.block_vibration": "Bedrockの触覚フィードバック",
-  "horizon.options.split_vibration": "スタック分割時の振動",
   "horizon.options.impulse_triggers": "インパルストリガー",
-  "A tick when you break a block, as in Bedrock.": "ブロックを壊すと、Bedrockのように振動します。",
-  "A short buzz when you split a stack, as in Bedrock.": "Bedrockのように、スタックを分割すると短く振動します。",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "ブロックを壊すと、Bedrockのように振動します。 Bedrockのように、スタックを分割すると短く振動します。",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox Oneコントローラーのトリガーはグリップと一緒に振動します。"
 }

@@ -1136,9 +1136,7 @@
   "horizon.title.not_affiliated": "ไม่มีส่วนเกี่ยวข้องกับ Mojang หรือ Microsoft",
   "key.emote": "วงล้ออีโมท",
   "horizon.options.block_vibration": "การตอบสนองแบบสัมผัสจาก Bedrock",
-  "horizon.options.split_vibration": "การสั่นเมื่อแบ่งกอง",
   "horizon.options.impulse_triggers": "ไทรเกอร์อิมพัลส์",
-  "A tick when you break a block, as in Bedrock.": "เมื่อคุณทำลายบล็อก มันจะสั่นเหมือนใน Bedrock",
-  "A short buzz when you split a stack, as in Bedrock.": "สั่นสั้น ๆ เมื่อคุณแบ่งกอง เหมือนใน Bedrock",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "เมื่อคุณทำลายบล็อก มันจะสั่นเหมือนใน Bedrock สั่นสั้น ๆ เมื่อคุณแบ่งกอง เหมือนใน Bedrock",
   "An Xbox One controller's triggers buzz with its handles.": "ไทรเกอร์ของคอนโทรลเลอร์ Xbox One จะสั่นพร้อมกับด้ามจับ"
 }

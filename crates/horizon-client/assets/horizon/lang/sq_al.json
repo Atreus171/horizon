@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Nuk është i lidhur me Mojang ose Microsoft",
   "key.emote": "Rrota e emoteve",
   "horizon.options.block_vibration": "Përgjigje haptike nga Bedrock",
-  "horizon.options.split_vibration": "Dridhje gjatë ndarjes së pirgut",
   "horizon.options.impulse_triggers": "Tregues impulsi",
-  "A tick when you break a block, as in Bedrock.": "Kur thyen një bllok, ai dridhet, si në Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Një dridhje e shkurtër kur ndan një pirg, si në Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Kur thyen një bllok, ai dridhet, si në Bedrock. Një dridhje e shkurtër kur ndan një pirg, si në Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "Treguesit e një kontrolluesi Xbox One dridhen së bashku me dorezat e tij."
 }

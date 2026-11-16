@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Կապված չէ Mojang-ի կամ Microsoft-ի հետ",
   "key.emote": "Էմոտների անիվ",
   "horizon.options.block_vibration": "Հապտիկ արձագանք Bedrock-ից",
-  "horizon.options.split_vibration": "Թրթռում կույտը բաժանելիս",
   "horizon.options.impulse_triggers": "Իմպուլսային ձգաններ",
-  "A tick when you break a block, as in Bedrock.": "Երբ կոտրում ես բլոկ, այն թրթռում է, ինչպես Bedrock-ում։",
-  "A short buzz when you split a stack, as in Bedrock.": "Կարճ թրթռում, երբ բաժանում ես կույտը, ինչպես Bedrock-ում։",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Երբ կոտրում ես բլոկ, այն թրթռում է, ինչպես Bedrock-ում։ Կարճ թրթռում, երբ բաժանում ես կույտը, ինչպես Bedrock-ում։",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One կարգավորիչի ձգանները թրթռում են նրա բռնակների հետ միասին։"
 }

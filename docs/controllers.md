@@ -755,13 +755,12 @@ the damage), a block broken, a stack split, an explosion nearby (scaled by
 distance), a totem of undying. Short, low-intensity pulses, as on Bedrock. A
 DualSense and an Xbox One pad get them through their own output reports
 (below), on every OS where the pad takes one. **Haptic Feedback from Bedrock**
-(`blockVibration:`, on by default) turns the broken-block tick off, as
-Bedrock's own option does, and **Split Vibration** (`splitVibration:`, on by
-default) the short tick when a stack splits. The split's tick only plays when
-the pad's own cursor made the click: the mouse never buzzes. Other pads go
-through gilrs force feedback: Linux (evdev force feedback, including Steam
-Input's virtual pad) and Windows support it; macOS gilrs has no force
-feedback, so it is silently skipped there.
+(`blockVibration:`, on by default) turns off both Bedrock-like ticks, the
+broken block's and the one when a stack splits, as Bedrock's own option does.
+The split's tick only plays when the pad's own cursor made the click: the
+mouse never buzzes. Other pads go through gilrs force feedback: Linux (evdev
+force feedback, including Steam Input's virtual pad) and Windows support it;
+macOS gilrs has no force feedback, so it is silently skipped there.
 
 ## DualSense output
 
@@ -1058,8 +1057,8 @@ ids.
   lighter and shorter: 55% in the grips, 30% in the triggers, 90 ms.
   **Impulse Triggers** (`impulseTriggers:`, on by default) stops the trigger
   motors and leaves the handles; **Haptic Feedback from Bedrock**
-  (`blockVibration:`) turns off the broken block's tick, and **Split
-  Vibration** (`splitVibration:`) the split's.
+  (`blockVibration:`) turns off both Bedrock-like ticks, the broken block's and
+  the split's.
 - **Handles and triggers.** Windows lists an Xbox pad twice, the WGI gamepad
   with force feedback and a raw HID entry without one; when the pad in use is
   the second, falling back to gilrs' rumble goes to its gamepad twin. That

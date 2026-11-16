@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Ikki tilknýtt Mojang ella Microsoft",
   "key.emote": "Emote-hjól",
   "horizon.options.block_vibration": "Haptisk afturmelding frá Bedrock",
-  "horizon.options.split_vibration": "Risting tá stakkur verður býttur",
   "horizon.options.impulse_triggers": "Impulstriggarar",
-  "A tick when you break a block, as in Bedrock.": "Tá tú brýtur ein blokk, ristir hon, sum í Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Stutt risting tá tú býtir ein stakk, sum í Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Tá tú brýtur ein blokk, ristir hon, sum í Bedrock. Stutt risting tá tú býtir ein stakk, sum í Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "Trigararnir á einum Xbox One-stýripinna rista saman við haldgreipunum."
 }

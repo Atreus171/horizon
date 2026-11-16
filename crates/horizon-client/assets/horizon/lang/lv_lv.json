@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Nav saistīts ar Mojang vai Microsoft",
   "key.emote": "Emociju ritenis",
   "horizon.options.block_vibration": "Bedrock haptiskā atgriezeniskā saite",
-  "horizon.options.split_vibration": "Vibrācija, sadalot kaudzi",
   "horizon.options.impulse_triggers": "Impulsa sprūdi",
-  "A tick when you break a block, as in Bedrock.": "Kad salaužat bloku, tas vibrē, kā Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Īsa vibrācija, sadalot kaudzi, kā Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Kad salaužat bloku, tas vibrē, kā Bedrock. Īsa vibrācija, sadalot kaudzi, kā Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One pults sprūdi vibrē kopā ar tās rokturiem."
 }

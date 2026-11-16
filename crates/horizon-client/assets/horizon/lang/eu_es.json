@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Ez dago Mojang edo Microsoft-ekin afiliatuta",
   "key.emote": "Emozioen gurpila",
   "horizon.options.block_vibration": "Bedrocken erantzun haptikoa",
-  "horizon.options.split_vibration": "Pila zatitzean dardara",
   "horizon.options.impulse_triggers": "Bultzada-gakoak",
-  "A tick when you break a block, as in Bedrock.": "Bloke bat hausten duzunean, bibratu egiten du, Bedrocken bezala.",
-  "A short buzz when you split a stack, as in Bedrock.": "Dardara laburra pila bat zatitzen duzunean, Bedrocken bezala.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Bloke bat hausten duzunean, bibratu egiten du, Bedrocken bezala. Dardara laburra pila bat zatitzen duzunean, Bedrocken bezala.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One kontrol baten gakoek bere heldulekuekin batera bibratzen dute."
 }

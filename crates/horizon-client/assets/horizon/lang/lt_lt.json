@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Nesusijęs su „Mojang“ ar „Microsoft“.",
   "key.emote": "Emocijų ratas",
   "horizon.options.block_vibration": "Bedrock haptinis atsiliepimas",
-  "horizon.options.split_vibration": "Vibracija dalijant krūvą",
   "horizon.options.impulse_triggers": "Impulsiniai gaidukai",
-  "A tick when you break a block, as in Bedrock.": "Kai sulaužote bloką, jis vibruoja, kaip Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Trumpa vibracija dalijant krūvą, kaip Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Kai sulaužote bloką, jis vibruoja, kaip Bedrock. Trumpa vibracija dalijant krūvą, kaip Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "„Xbox One“ pultelio gaidukai vibruoja kartu su jo rankenomis."
 }

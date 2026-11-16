@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Mojang эсвэл Microsoft-той холбоогүй",
   "key.emote": "Эможи хүрд",
   "horizon.options.block_vibration": "Bedrock-оос хаптик эргэх холбоо",
-  "horizon.options.split_vibration": "Багц хуваах үеийн чичиргээ",
   "horizon.options.impulse_triggers": "Импульсийн триггер",
-  "A tick when you break a block, as in Bedrock.": "Блок хагалахад Bedrock шиг чичирнэ.",
-  "A short buzz when you split a stack, as in Bedrock.": "Багц хуваах үед Bedrock шиг богино чичирнэ.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Блок хагалахад Bedrock шиг чичирнэ. Багц хуваах үед Bedrock шиг богино чичирнэ.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One контроллерийн триггер нь бариултайгаа хамт чичирнэ."
 }

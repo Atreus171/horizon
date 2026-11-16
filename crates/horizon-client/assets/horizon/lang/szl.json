@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Niy powiōnzany ze Mojang abo Microsoft",
   "key.emote": "Koło emocyj",
   "horizon.options.block_vibration": "Haptyczne sprzyńżyni zwrotne ze Bedrocka",
-  "horizon.options.split_vibration": "Wibracyjo przi dzielůniu stosu",
   "horizon.options.impulse_triggers": "Impulsowe spusty",
-  "A tick when you break a block, as in Bedrock.": "Kiej łamiesz blok, wibruje, jak we Bedrocku.",
-  "A short buzz when you split a stack, as in Bedrock.": "Krůtko wibracyjo przi dzielůniu stosu, jak we Bedrocku.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Kiej łamiesz blok, wibruje, jak we Bedrocku. Krůtko wibracyjo przi dzielůniu stosu, jak we Bedrocku.",
   "An Xbox One controller's triggers buzz with its handles.": "Spusty kontrolera Xbox One wibrujōm razem z jego uchwytami."
 }

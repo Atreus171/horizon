@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "موجانگ یا مائیکروسافٹ سے وابستہ نہیں",
   "key.emote": "ایموٹ وہیل",
   "horizon.options.block_vibration": "Bedrock کی طرف سے ہیپٹک فیڈبیک",
-  "horizon.options.split_vibration": "اسٹیک تقسیم کرنے پر کمپن",
   "horizon.options.impulse_triggers": "امپلس ٹرگرز",
-  "A tick when you break a block, as in Bedrock.": "جب آپ بلاک توڑتے ہیں تو وہ کمپن کرتا ہے، جیسے Bedrock میں۔",
-  "A short buzz when you split a stack, as in Bedrock.": "اسٹیک تقسیم کرنے پر مختصر کمپن، جیسے Bedrock میں۔",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "جب آپ بلاک توڑتے ہیں تو وہ کمپن کرتا ہے، جیسے Bedrock میں۔ اسٹیک تقسیم کرنے پر مختصر کمپن، جیسے Bedrock میں۔",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One کنٹرولر کے ٹرگر اس کے ہینڈلز کے ساتھ کمپن کرتے ہیں۔"
 }

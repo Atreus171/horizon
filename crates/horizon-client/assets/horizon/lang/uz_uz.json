@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Mojang yoki Microsoft bilan bog'lanmagan",
   "key.emote": "Emotsiya g'ildiragi",
   "horizon.options.block_vibration": "Bedrock’dan haptik qayta aloqa",
-  "horizon.options.split_vibration": "To‘plamni bo‘lishda tebranish",
   "horizon.options.impulse_triggers": "Impuls triggerlari",
-  "A tick when you break a block, as in Bedrock.": "Blokni sindirganingizda u Bedrockdagidek tebranadi.",
-  "A short buzz when you split a stack, as in Bedrock.": "To‘plamni bo‘lganda qisqa tebranadi, Bedrockdagidek.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Blokni sindirganingizda u Bedrockdagidek tebranadi. To‘plamni bo‘lganda qisqa tebranadi, Bedrockdagidek.",
   "An Xbox One controller's triggers buzz with its handles.": "Xbox One kontrollerining triggerlari tutqichlari bilan birga tebranadi."
 }

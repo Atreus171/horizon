@@ -1042,9 +1042,7 @@
   "horizon.title.not_affiliated": "Net verbonne mat Mojang oder Microsoft",
   "key.emote": "Emote-Rad",
   "horizon.options.block_vibration": "Haptesche Rückmeldung vum Bedrock",
-  "horizon.options.split_vibration": "Vibratioun beim Deelen vun engem Stack",
   "horizon.options.impulse_triggers": "Impulstrigger",
-  "A tick when you break a block, as in Bedrock.": "Wann s du e Block ofbaust, vibréiert en, wéi am Bedrock.",
-  "A short buzz when you split a stack, as in Bedrock.": "Eng kuerz Vibratioun, wann Dir e Stack deelt, wéi am Bedrock.",
+  "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.": "Wann s du e Block ofbaust, vibréiert en, wéi am Bedrock. Eng kuerz Vibratioun, wann Dir e Stack deelt, wéi am Bedrock.",
   "An Xbox One controller's triggers buzz with its handles.": "D'Triggere vun engem Xbox One Controller vibréieren zesumme mat senge Grëffer."
 }
