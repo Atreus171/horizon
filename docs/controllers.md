@@ -757,6 +757,9 @@ DualSense and an Xbox One pad get them through their own output reports
 (below), on every OS where the pad takes one. **Haptic Feedback from Bedrock**
 (`blockVibration:`, on by default) turns off both Bedrock-like ticks, the
 broken block's and the one when a stack splits, as Bedrock's own option does.
+When an older controller file has either `blockVibration:false` or
+`splitVibration:false`, the combined switch stays off. Its next save drops
+`splitVibration:`; players can then turn both ticks on with the one switch.
 The split's tick only plays when the pad's own cursor made the click: the
 mouse never buzzes. Other pads go through gilrs force feedback: Linux (evdev
 force feedback, including Steam Input's virtual pad) and Windows support it;

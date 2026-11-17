@@ -758,6 +758,7 @@ impl PadSettings {
     pub fn parse(text: &str) -> Self {
         let mut s = Self::default();
         let mut saved_opener = None;
+        let mut legacy_split_vibration = true;
         for line in text.lines() {
             let Some((key, value)) = line.split_once(':') else {
                 continue;
@@ -789,6 +790,7 @@ impl PadSettings {
                 "adaptiveTriggers" => s.adaptive_triggers = flag(s.adaptive_triggers),
                 "impulseTriggers" => s.impulse_triggers = flag(s.impulse_triggers),
                 "blockVibration" => s.block_vibration = flag(s.block_vibration),
+                "splitVibration" => legacy_split_vibration = flag(legacy_split_vibration),
                 "lightbar" => s.lightbar = Lightbar::parse(value),
                 "lookSensitivity" => s.look_sensitivity = unit(s.look_sensitivity),
                 "invertX" => s.invert_x = flag(s.invert_x),
@@ -832,6 +834,9 @@ impl PadSettings {
                 }
             }
         }
+        // The two old switches are one now. Keep either opt-out, regardless of
+        // line order, and consume the old key rather than saving it as an extra.
+        s.block_vibration &= legacy_split_vibration;
         // An opener on a button it can't be with this stick reads as never saved.
         let refused_opener = match saved_opener {
             Some(Some(b)) if opener_refused(s.radial_stick, b) => true,
@@ -2777,6 +2782,31 @@ bind_key.hotbar.2:north
                 .contains("impulseTriggers:false\nblockVibration:false\n")
         );
         assert_eq!(PadSettings::parse(&off.serialize()), off);
+    }
+
+    #[test]
+    fn old_haptics_switches_keep_either_opt_out() {
+        assert!(!PadSettings::parse("splitVibration:false\n").block_vibration);
+        assert!(PadSettings::parse("").block_vibration);
+        for (block, split, expected) in [
+            (true, true, true),
+            (true, false, false),
+            (false, true, false),
+            (false, false, false),
+        ] {
+            for text in [
+                format!("blockVibration:{block}\nsplitVibration:{split}\nfuture:true\n"),
+                format!("splitVibration:{split}\nblockVibration:{block}\nfuture:true\n"),
+            ] {
+                let settings = PadSettings::parse(&text);
+                assert_eq!(settings.block_vibration, expected, "{text}");
+                assert!(settings.vibration && settings.impulse_triggers);
+                let saved = settings.serialize();
+                assert!(!saved.contains("splitVibration:"));
+                assert!(saved.contains("future:true\n"));
+                assert_eq!(PadSettings::parse(&saved), settings);
+            }
+        }
     }
 
     /// One switch covers both Bedrock-like ticks (a broken block and a split); the split is
