@@ -354,6 +354,10 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                     "Feedback",
                     vec![
                         option(Opt::PadVibration, "Rumble when something happens to you."),
+                        option(
+                            Opt::PadVibrationStrength,
+                            "How hard the handles buzz. Lower it if the pad rattles on a desk.",
+                        ),
                         switch(
                             Switch::BlockVibration,
                             "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.",
@@ -361,6 +365,10 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                         switch(
                             Switch::ImpulseTriggers,
                             "An Xbox One controller's triggers buzz with its handles.",
+                        ),
+                        option(
+                            Opt::PadImpulseStrength,
+                            "How hard an Xbox pad's triggers buzz. Lower it if its triggers rattle.",
                         ),
                         option(
                             Opt::PadAdaptiveTriggers,
@@ -757,6 +765,8 @@ mod tests {
             Opt::PadGameplayGuide,
             Opt::PadCraftOnServers,
             Opt::PadVibration,
+            Opt::PadVibrationStrength,
+            Opt::PadImpulseStrength,
             Opt::PadPlayInBackground,
             Opt::PadAdaptiveTriggers,
             Opt::PadLightbar,
