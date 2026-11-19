@@ -652,6 +652,11 @@ pub struct PadSettings {
     /// A broken block ticks the pad and splitting a stack buzzes, as in Bedrock
     /// (docs/controllers.md).
     pub block_vibration: bool,
+    /// How hard the handles buzz, 0..1: the player's own strength (docs/controllers.md
+    /// "Rumble").
+    pub vibration_strength: f32,
+    /// How hard an Xbox One pad's impulse triggers buzz, 0..1.
+    pub impulse_strength: f32,
     pub lightbar: Lightbar,
     /// 0..1; 0.5 is the default speed, 1 twice that.
     pub look_sensitivity: f32,
@@ -707,6 +712,8 @@ impl Default for PadSettings {
             adaptive_triggers: true,
             impulse_triggers: true,
             block_vibration: true,
+            vibration_strength: 1.0,
+            impulse_strength: 1.0,
             lightbar: Lightbar::Health,
             look_sensitivity: 0.5,
             invert_x: false,
@@ -791,6 +798,8 @@ impl PadSettings {
                 "impulseTriggers" => s.impulse_triggers = flag(s.impulse_triggers),
                 "blockVibration" => s.block_vibration = flag(s.block_vibration),
                 "splitVibration" => legacy_split_vibration = flag(legacy_split_vibration),
+                "vibrationStrength" => s.vibration_strength = unit(s.vibration_strength),
+                "impulseStrength" => s.impulse_strength = unit(s.impulse_strength),
                 "lightbar" => s.lightbar = Lightbar::parse(value),
                 "lookSensitivity" => s.look_sensitivity = unit(s.look_sensitivity),
                 "invertX" => s.invert_x = flag(s.invert_x),
@@ -909,12 +918,14 @@ impl PadSettings {
     }
     pub fn serialize(&self) -> String {
         let mut text = format!(
-            "enabled:{}\nvibration:{}\nadaptiveTriggers:{}\nimpulseTriggers:{}\nblockVibration:{}\nlightbar:{}\nlookSensitivity:{}\ninvertX:{}\ninvertY:{}\nmoveDeadzone:{}\nlookDeadzone:{}\ntriggerThreshold:{}\ntoggleSneak:{}\nglyphs:{}\nnintendoLetters:{}\nkeyboard:{}\n",
+            "enabled:{}\nvibration:{}\nadaptiveTriggers:{}\nimpulseTriggers:{}\nblockVibration:{}\nvibrationStrength:{}\nimpulseStrength:{}\nlightbar:{}\nlookSensitivity:{}\ninvertX:{}\ninvertY:{}\nmoveDeadzone:{}\nlookDeadzone:{}\ntriggerThreshold:{}\ntoggleSneak:{}\nglyphs:{}\nnintendoLetters:{}\nkeyboard:{}\n",
             bool_text(self.enabled),
             bool_text(self.vibration),
             bool_text(self.adaptive_triggers),
             bool_text(self.impulse_triggers),
             bool_text(self.block_vibration),
+            self.vibration_strength,
+            self.impulse_strength,
             self.lightbar.name(),
             self.look_sensitivity,
             bool_text(self.invert_x),
@@ -1645,6 +1656,23 @@ pub struct Pulse {
     /// leaves alone.
     pub triggers: [f32; 2],
     pub millis: u32,
+}
+impl Pulse {
+    /// The same pulse at the player's strengths, 0..1 each: `vibration` scales both handles and
+    /// `impulse` the trigger motors, so one setting fits every pad without changing a pulse's
+    /// shape.
+    pub fn scaled(self, vibration: f32, impulse: f32) -> Pulse {
+        let scale = |v: f32, strength: f32| v * strength.clamp(0.0, 1.0);
+        Pulse {
+            strong: scale(self.strong, vibration),
+            weak: scale(self.weak, vibration),
+            triggers: [
+                scale(self.triggers[0], impulse),
+                scale(self.triggers[1], impulse),
+            ],
+            millis: self.millis,
+        }
+    }
 }
 use crate::radial::{RADIAL_NOTHING, RADIAL_PAGE_TICK, RADIAL_TICK};
 impl Rumble {
@@ -2858,6 +2886,44 @@ bind_key.hotbar.2:north
                 .windows(2)
                 .all(|w| w[1].triggers[0] < w[0].triggers[0])
         );
+    }
+
+    /// The two strength sliders save, clamp, and a file from before them reads as full strength.
+    #[test]
+    fn the_strengths_save_and_an_older_file_reads_as_full_strength() {
+        let settings = PadSettings::default();
+        assert_eq!(
+            (settings.vibration_strength, settings.impulse_strength),
+            (1.0, 1.0)
+        );
+        // A file written before the sliders existed: both stay full.
+        let old = PadSettings::parse("vibration:true\nimpulseTriggers:true\nblockVibration:true\n");
+        assert_eq!((old.vibration_strength, old.impulse_strength), (1.0, 1.0));
+        // What the sliders write, and a value from a hand-edited file.
+        let set = PadSettings::parse("vibrationStrength:0.45\nimpulseStrength:1.5\n");
+        assert_eq!((set.vibration_strength, set.impulse_strength), (0.45, 1.0));
+        assert_eq!(PadSettings::parse(&set.serialize()), set);
+    }
+
+    /// A strength scales its own motors; the other motors, the length and full strength stay as
+    /// they were.
+    #[test]
+    fn a_strength_scales_only_its_own_motors() {
+        let pulse = Rumble::BlockBroken.pulse().unwrap();
+        let half = pulse.scaled(0.5, 0.25);
+        assert_eq!(half.strong, pulse.strong * 0.5);
+        assert_eq!(half.weak, pulse.weak * 0.5);
+        assert_eq!(
+            half.triggers,
+            [pulse.triggers[0] * 0.25, pulse.triggers[1] * 0.25]
+        );
+        assert_eq!(half.millis, pulse.millis);
+        assert_eq!(pulse.scaled(1.0, 1.0), pulse);
+        // Zero silences that motor; beyond the sliders' range the clamp holds it at full or none.
+        let silent = pulse.scaled(0.0, 0.0);
+        assert_eq!((silent.strong, silent.weak), (0.0, 0.0));
+        assert_eq!(silent.triggers, [0.0, 0.0]);
+        assert_eq!(pulse.scaled(2.0, 1.0), pulse);
     }
 
     #[test]
