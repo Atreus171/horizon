@@ -1049,7 +1049,9 @@ ids.
   one the system lists: the writer takes its ids and its place among identical
   pads, then asks WGI or hidapi for that one. Connecting a second controller
   therefore neither takes the first one's output nor silences it, and each pad
-  keeps its own four motors.
+  keeps its own four motors. Of the HID collections a pad lists, the gamepad one
+  (usage page 1, usage 5) is tried first: a DualShock 4 also lists a
+  vendor-specific interface, and a report written to that one goes nowhere.
 - **DualShock 4.** Sony's 054c:05c4 and 054c:09cc have two motors and no
   trigger motors, and until now Horizon handed them to Windows.Gaming.Input on
   Windows, which lists no DualShock 4: the link asked WGI for a pad it never

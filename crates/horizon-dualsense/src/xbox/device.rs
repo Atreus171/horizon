@@ -158,7 +158,9 @@ impl Xbox {
             Frame::Gip
         };
         // The matches, wired first: a pad on a cable can still be listed over Bluetooth for a
-        // moment. `index` picks among identical pads of this model.
+        // moment. `index` picks among identical pads of this model. The gamepad collection leads
+        // them all: a DualShock 4 also lists a vendor-specific HID interface, and a report written
+        // to that one goes nowhere (SDL filters on the same pair).
         let mut pads: Vec<&hidapi::DeviceInfo> = api
             .device_list()
             .filter(|d| {
@@ -170,7 +172,10 @@ impl Xbox {
                 known && target.matches(ids.0, ids.1)
             })
             .collect();
-        pads.sort_by_key(|d| transport(d) == Transport::Bluetooth);
+        pads.sort_by_key(|d| {
+            let gamepad = d.usage_page() == 1 && d.usage() == 5;
+            (!gamepad, transport(d) == Transport::Bluetooth)
+        });
         let rank = if target == Target::ANY {
             0
         } else {
