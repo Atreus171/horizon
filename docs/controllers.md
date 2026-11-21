@@ -1074,6 +1074,19 @@ ids.
   and sends it again with every report and when the pad comes back; Off leaves
   the pad's own. Windows, Linux and macOS all take these reports; unit tests
   pin them to SDL's `SDL_hidapi_ps4.c`.
+- **A Bluetooth report takes the control pipe on Windows.** A report written to
+  a Bluetooth pad's interrupt-out pipe can be accepted and never delivered: the
+  driver returns success and the adapter drops it (hidapi's known issue,
+  [libusb/hidapi#513](https://github.com/libusb/hidapi/issues/513),
+  "hid_write may silently drop output reports on some BLE adapters/devices").
+  A DualShock 4 is one of the pads that report was about, so its Bluetooth
+  report goes out with Set_Report over the control endpoint
+  (`hidapi`'s `send_output_report`), falling back to the interrupt-out write
+  where the stack refuses it; DS4Windows sends its own Bluetooth output the
+  same way. The other pads keep the interrupt-out pipe, which is the path SDL
+  takes. If the pad still ignores reports, `HORIZON_CONTROLLER_LOG` now logs the
+  collection the writer opened (vendor and product ids, usage page, usage,
+  interface) beside each report.
 - **Splitscreen.** Each player's pad keeps its own four motors. P1's game owns
   its output while its turn runs; a guest's game has no output path of its own,
   so the router that feeds the guests opens one link per guest pad, with that
@@ -1141,10 +1154,15 @@ played physically over Bluetooth (the four motors and the link's stop). In the
 game on the player's wired 1708 pad, all four motors buzz on a broken block
 after the tick's level was raised (the grips did not answer 35% for 100 ms),
 and cable ↔ Bluetooth worked both ways without a restart —
-Windows.Gaming.Input's trigger motors do reach a wired pad. The DualShock 4's
-reports and lightbar are pinned to SDL's bytes only: no DS4 has played them yet. The flat
-hit step, a splitscreen guest's triggers, the split's tick, the strength
-sliders and a GameSir G7 still need a physical check.
+Windows.Gaming.Input's trigger motors do reach a wired pad. The player's wired
+DualShock 4 (`054c:05c4`) plays the dualshock frame: the block's tick, damage and
+Lightbar Health and Dimension all landed. Over Bluetooth the same pad took the
+reports without buzzing, its light blinking to the right colour for an instant
+on a block break: the signature of writes the adapter never delivers, which is
+why the gamepad collection now goes first and why a Bluetooth report takes the
+control pipe (§ above). Both changes need the retest. The
+flat hit step, a splitscreen guest's triggers, the split's tick and a GameSir G7
+still need a physical check.
 
 `cargo run -p horizon-dualsense --example xbox -- all` plays each motor on a
 real pad, which is how to check a change without the game.

@@ -207,6 +207,7 @@ impl Xbox {
                         && transport(info) == Transport::Bluetooth
                         && let Ok(device) = info.open_device(api)
                     {
+                        log_open(info, frame, Transport::Bluetooth);
                         return Some(Ok(Xbox {
                             backend: Backend::Hid(device),
                             transport: Transport::Bluetooth,
@@ -229,6 +230,7 @@ impl Xbox {
             if takes_report(transport) {
                 match info.open_device(api) {
                     Ok(device) => {
+                        log_open(info, frame, transport);
                         return Some(Ok(Xbox {
                             backend: Backend::Hid(device),
                             transport,
@@ -272,18 +274,58 @@ impl Xbox {
                 (Frame::Gip, Transport::Bluetooth) => {
                     device.write(&bluetooth(motors))?;
                 }
-                // The trigger levels are dropped: a DualShock 4 has no trigger motors.
+                // The trigger levels are dropped: a DualShock 4 has no trigger motors. Over
+                // Bluetooth the report takes the control pipe on Windows: see `write_bluetooth`.
                 (Frame::Dualshock, Transport::Usb) => {
                     device.write(&dualshock::usb(motors, light))?;
                 }
                 (Frame::Dualshock, Transport::Bluetooth) => {
-                    device.write(&dualshock::bluetooth(motors, light))?;
+                    write_bluetooth(device, &dualshock::bluetooth(motors, light))?;
                 }
             },
             #[cfg(windows)]
             Backend::Wgi(pad) => pad.write(motors)?,
         };
         Ok(())
+    }
+}
+
+/// A report over Bluetooth. On Windows a report written to the interrupt-out pipe can be
+/// **silently dropped**: the driver takes `WriteFile` and the adapter never delivers it (hidapi's
+/// known issue, "Bluetooth: hid_write may silently drop output reports on some BLE
+/// adapters/devices", libusb/hidapi#513). A DualShock 4 was one of the pads that report was about;
+/// DS4Windows sends its Bluetooth output over the control pipe for the same reason. So the
+/// DualShock's report goes through `send_output_report` (Set_Report over the control endpoint) and
+/// falls back to `write` where the stack refuses that.
+#[cfg(windows)]
+fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(), HidError> {
+    match device.send_output_report(report) {
+        Ok(()) => Ok(()),
+        Err(_) => device.write(report).map(|_| ()),
+    }
+}
+
+/// Everywhere else the interrupt-out pipe is the path hidapi and SDL take, and it delivers.
+#[cfg(not(windows))]
+fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(), HidError> {
+    device.write(report).map(|_| ())
+}
+
+/// Which collection the reports go to, when `HORIZON_CONTROLLER_LOG` asks: a DualShock 4 lists a
+/// gamepad collection (usage page 1, usage 5) and a vendor-specific one, and only the gamepad one
+/// carries output.
+fn log_open(info: &hidapi::DeviceInfo, frame: Frame, transport: Transport) {
+    if std::env::var_os("HORIZON_CONTROLLER_LOG").is_some() {
+        log::info!(
+            "Horizon: controller: opened {:04x}:{:04x} usage page {} usage {} interface {} as {:?} over {:?}",
+            info.vendor_id(),
+            info.product_id(),
+            info.usage_page(),
+            info.usage(),
+            info.interface_number(),
+            frame,
+            transport,
+        );
     }
 }
 
