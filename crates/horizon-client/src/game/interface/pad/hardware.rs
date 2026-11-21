@@ -1230,11 +1230,11 @@ mod direct_output_tests {
     #[test]
     fn the_strengths_scale_the_grips_and_the_triggers_apart() {
         let full = xbox_steps(Rumble::BlockBroken, true, 1.0, 1.0);
-        // Half the handles, a quarter of the triggers: 60% of 255 becomes 30% of 255 (77), and
-        // 35% becomes 8.75% (22).
+        // Half the handles, a quarter of the triggers, each squared (Pulse::scaled): 60% of 255
+        // becomes 15% (38), and 35% becomes 2.19% (6).
         let half = xbox_steps(Rumble::BlockBroken, true, 0.5, 0.25);
-        assert_eq!([half[0].0.strong, half[0].0.weak], [77, 77]);
-        assert_eq!([half[0].0.left_trigger, half[0].0.right_trigger], [22, 22]);
+        assert_eq!([half[0].0.strong, half[0].0.weak], [38, 38]);
+        assert_eq!([half[0].0.left_trigger, half[0].0.right_trigger], [6, 6]);
         // The pulse's length is its own, whatever the strengths.
         assert_eq!(half[0].1, full[0].1);
         // Zero on a strength stops that pair of motors.

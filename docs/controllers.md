@@ -767,7 +767,10 @@ Two sliders scale what reaches the pad: **Vibration Strength**
 (`vibrationStrength:`, 1 by default, 0.05 steps) multiplies the handles' level
 on every path, and **Impulse Trigger Strength** (`impulseStrength:`) does the
 same for the trigger motors, on an Xbox One pad and in Windows.Gaming.Input's
-vibration.
+vibration. Each is applied squared, not as the raw fraction: a motor at half
+its level still spins at well over half its speed and is felt near full force
+(a slider at 50% played like 100%), so halfway on the slider is a quarter of
+the level and is felt as a quarter. 1 is the full pulse, 0 silences it.
 The split's tick only plays when the pad's own cursor made the click: the
 mouse never buzzes. Other pads go through gilrs force feedback: Linux (evdev
 force feedback, including Steam Input's virtual pad) and Windows support it;
@@ -1096,9 +1099,9 @@ ids.
   triggers buzzed. A hit holds one flat step for its whole pulse (the handles
   70–90%, the triggers 65%, 200–450 ms), so the grips spin up too. A split is
   lighter and shorter: 55% in the grips, 30% in the triggers, 90 ms. Those are
-  the pulses' own levels: the two strengths multiply them before any report is
-  built. **Impulse Triggers** (`impulseTriggers:`, on by default) stops the
-  trigger motors and leaves the handles; **Haptic Feedback from Bedrock**
+  the pulses' own levels: the two strengths scale them, squared as "Rumble"
+  explains, before any report is built. **Impulse Triggers** (`impulseTriggers:`,
+  on by default) stops the trigger motors and leaves the handles; **Haptic Feedback from Bedrock**
   (`blockVibration:`) turns off both Bedrock-like ticks, the broken block's and
   the split's.
 - **Handles and triggers.** Windows lists an Xbox pad twice, the WGI gamepad

@@ -1656,8 +1656,13 @@ impl Pulse {
     /// The same pulse at the player's strengths, 0..1 each: `vibration` scales both handles and
     /// `impulse` the trigger motors, so one setting fits every pad without changing a pulse's
     /// shape.
+    ///
+    /// A strength is applied squared, not as the raw fraction. A motor doesn't answer its level
+    /// evenly: at half the level it still spins at well over half its speed and is felt near the
+    /// full force, which is why a slider at 50% played like 100%. Squared, the slider's middle is
+    /// a quarter of the level and is felt as a quarter, while 1 stays the full pulse.
     pub fn scaled(self, vibration: f32, impulse: f32) -> Pulse {
-        let scale = |v: f32, strength: f32| v * strength.clamp(0.0, 1.0);
+        let scale = |v: f32, strength: f32| v * strength.clamp(0.0, 1.0).powi(2);
         Pulse {
             strong: scale(self.strong, vibration),
             weak: scale(self.weak, vibration),
@@ -2883,17 +2888,19 @@ bind_key.hotbar.2:north
         assert_eq!(PadSettings::parse(&set.serialize()), set);
     }
 
-    /// A strength scales its own motors; the other motors, the length and full strength stay as
-    /// they were.
+    /// A strength scales its own motors along its curve; the other motors, the length and full
+    /// strength stay as they were.
     #[test]
     fn a_strength_scales_only_its_own_motors() {
         let pulse = Rumble::BlockBroken.pulse().unwrap();
+        // The slider's middle is a quarter of the level, its quarter a sixteenth: a motor's
+        // force trails its level, so the number the player picks is applied squared.
         let half = pulse.scaled(0.5, 0.25);
-        assert_eq!(half.strong, pulse.strong * 0.5);
-        assert_eq!(half.weak, pulse.weak * 0.5);
+        assert_eq!(half.strong, pulse.strong * 0.25);
+        assert_eq!(half.weak, pulse.weak * 0.25);
         assert_eq!(
             half.triggers,
-            [pulse.triggers[0] * 0.25, pulse.triggers[1] * 0.25]
+            [pulse.triggers[0] * 0.0625, pulse.triggers[1] * 0.0625]
         );
         assert_eq!(half.millis, pulse.millis);
         assert_eq!(pulse.scaled(1.0, 1.0), pulse);

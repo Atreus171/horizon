@@ -136,12 +136,12 @@ fn choice_description(opt: Opt, pad: &PadSettings) -> Option<&'static str> {
         },
         Opt::PadLightbar => match pad.lightbar {
             gamepad::Lightbar::Health => {
-                "A DualSense's light shows your health, from green through amber to red."
+                "The light on a DualSense or a DualShock 4 shows your health, from green through amber to red."
             }
             gamepad::Lightbar::Dimension => {
-                "A DualSense's light changes with the dimension you're in."
+                "The light on a DualSense or a DualShock 4 changes with the dimension you're in."
             }
-            gamepad::Lightbar::Off => "A DualSense keeps its own light.",
+            gamepad::Lightbar::Off => "A DualSense or a DualShock 4 keeps its own light.",
         },
         Opt::PadRadialMode => match pad.radial_mode {
             gamepad::RadialMode::Hold => "horizon.options.radial_mode.hold.about",
@@ -359,12 +359,12 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                             "How hard the handles buzz. Lower it if the pad rattles on a desk.",
                         ),
                         switch(
-                            Switch::BlockVibration,
-                            "A tick when you break a block, as in Bedrock. A short buzz when you split a stack, as in Bedrock.",
-                        ),
-                        switch(
                             Switch::ImpulseTriggers,
                             "An Xbox One controller's triggers buzz with its handles.",
+                        ),
+                        switch(
+                            Switch::BlockVibration,
+                            "A tick when you break a block and a short buzz when you split a stack, as in Bedrock.",
                         ),
                         option(
                             Opt::PadImpulseStrength,
@@ -376,7 +376,7 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                         ),
                         option(
                             Opt::PadLightbar,
-                            "What a DualSense's light shows, over USB or Bluetooth.",
+                            "What the light on a DualSense or a DualShock 4 shows, over USB or Bluetooth.",
                         ),
                     ],
                 ),
