@@ -362,13 +362,13 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                             Switch::ImpulseTriggers,
                             "An Xbox One controller's triggers buzz with its handles.",
                         ),
-                        switch(
-                            Switch::BlockVibration,
-                            "A tick when you break a block and a short buzz when you split a stack, as in Bedrock.",
-                        ),
                         option(
                             Opt::PadImpulseStrength,
                             "How hard an Xbox pad's triggers buzz. Lower it if its triggers rattle.",
+                        ),
+                        switch(
+                            Switch::BlockVibration,
+                            "A tick when you break a block and a short buzz when you split a stack, as in Bedrock.",
                         ),
                         option(
                             Opt::PadAdaptiveTriggers,
