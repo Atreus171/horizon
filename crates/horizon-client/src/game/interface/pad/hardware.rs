@@ -889,15 +889,15 @@ impl Game<'_> {
             }
         }
         // The DualShock 4's lightbar, while its own output is open: the same colour, in a report
-        // of its own. An Xbox One pad ignores it, so this runs only for the DualShock 4.
+        // of its own. An Xbox One pad ignores it, so this runs only for the DualShock 4. Turning
+        // the setting off sends `None`: the writer drops the colour it kept, so later rumble
+        // reports leave the lightbar alone instead of showing the old colour again.
         if self.pad.devices.dualshock
             && self.pad.devices.xbox_output.is_some()
             && self.pad.devices.shown_light != lightbar
         {
-            if let Some(colour) = lightbar
-                && let Some(output) = &self.pad.devices.xbox_output
-            {
-                output.light(colour);
+            if let Some(output) = &self.pad.devices.xbox_output {
+                output.light(lightbar);
             }
             self.pad.devices.shown_light = lightbar;
         }

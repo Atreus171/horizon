@@ -337,8 +337,8 @@ pub type Rumble = Vec<(Motors, Duration)>;
 #[cfg_attr(target_os = "ios", allow(dead_code))]
 enum Message {
     Rumble(Rumble),
-    /// The lightbar's colour (a DualShock 4's).
-    Light([u8; 3]),
+    /// The lightbar's colour (a DualShock 4's); `None` stops setting one.
+    Light(Option<[u8; 3]>),
     Scan,
 }
 
@@ -399,9 +399,10 @@ impl Link {
         self.send(Message::Rumble(rumble));
     }
 
-    /// Show `colour` on a DualShock 4's lightbar. It is kept and re-sent with every later report,
-    /// and again when the pad comes back; an Xbox One pad ignores it.
-    pub fn light(&self, colour: [u8; 3]) {
+    /// Show `colour` on a DualShock 4's lightbar, or `None` to stop setting one. A colour is kept
+    /// and re-sent with every later report, and again when the pad comes back; `None` drops it, so
+    /// later reports leave the lightbar as the pad has it. An Xbox One pad ignores it.
+    pub fn light(&self, colour: Option<[u8; 3]>) {
         self.send(Message::Light(colour));
     }
 
@@ -556,11 +557,11 @@ impl Writer {
         }
     }
 
-    /// Keep a new lightbar colour: the motors may not have changed, so the next report is forced
-    /// to carry it.
-    fn set_light(&mut self, colour: [u8; 3]) {
-        if self.light != Some(colour) {
-            self.light = Some(colour);
+    /// Keep a new lightbar colour (`None`: stop setting one): the motors may not have changed, so
+    /// the next report is forced to carry it, or to leave the lightbar alone.
+    fn set_light(&mut self, colour: Option<[u8; 3]>) {
+        if self.light != colour {
+            self.light = colour;
             self.sent = None;
         }
     }
@@ -735,14 +736,14 @@ mod tests {
     fn the_lightbar_is_sent_once_and_again_when_the_pad_comes_back() {
         let open = Arc::new(AtomicU8::new(1));
         let (mut writer, writes) = writer(&open, false);
-        writer.set_light([0x11, 0x9d, 0x2e]);
+        writer.set_light(Some([0x11, 0x9d, 0x2e]));
         writer.flush();
         assert_eq!(
             *writes.lock().unwrap(),
             vec![(Motors::STOP, Some([0x11, 0x9d, 0x2e]))]
         );
         // The same colour, and a frame with no news: nothing is written again.
-        writer.set_light([0x11, 0x9d, 0x2e]);
+        writer.set_light(Some([0x11, 0x9d, 0x2e]));
         writer.flush();
         assert_eq!(writes.lock().unwrap().len(), 1);
         // Unplugged and plugged back: the new pad is told the colour with its first report.
@@ -756,6 +757,30 @@ mod tests {
         assert_eq!(
             *again.lock().unwrap(),
             vec![(Motors::STOP, Some([0x11, 0x9d, 0x2e]))]
+        );
+    }
+
+    /// Turning the lightbar setting off drops the kept colour: one report leaves the lightbar
+    /// alone, and so does every rumble after it.
+    #[test]
+    fn turning_the_lightbar_off_drops_the_kept_colour() {
+        let open = Arc::new(AtomicU8::new(1));
+        let (mut writer, writes) = writer(&open, false);
+        writer.set_light(Some([0x11, 0x9d, 0x2e]));
+        writer.flush();
+        writer.set_light(None);
+        writer.flush();
+        writer
+            .rumble
+            .push((Motors::levels(0.5, 0.0, [0.0; 2]), Duration::from_secs(1)));
+        writer.flush();
+        assert_eq!(
+            *writes.lock().unwrap(),
+            vec![
+                (Motors::STOP, Some([0x11, 0x9d, 0x2e])),
+                (Motors::STOP, None),
+                (Motors::levels(0.5, 0.0, [0.0; 2]), None),
+            ]
         );
     }
 }

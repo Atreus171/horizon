@@ -1074,9 +1074,9 @@ ids.
   rides the same effect block (red, green and blue after the handles, flash
   delays zero): the same "Lightbar" setting as the DualSense, at the same
   half-brightness, with menus keeping the last colour. Horizon keeps the colour
-  and sends it again with every report and when the pad comes back; Off leaves
-  the pad's own. Windows, Linux and macOS all take these reports; unit tests
-  pin them to SDL's `SDL_hidapi_ps4.c`.
+  and sends it again with every report and when the pad comes back; Off drops
+  it, so later reports leave the lightbar to the pad. Windows, Linux and macOS
+  all take these reports; unit tests pin them to SDL's `SDL_hidapi_ps4.c`.
 - **A Bluetooth report takes the control pipe on Windows.** A report written to
   a Bluetooth pad's interrupt-out pipe can be accepted and never delivered: the
   driver returns success and the adapter drops it (hidapi's known issue,
