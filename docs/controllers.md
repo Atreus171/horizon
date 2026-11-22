@@ -967,9 +967,12 @@ audio device is only ever opened by name, never the system's default output.
 
 "Lightbar: Health / Dimension / Off" in the controller options
 (`lightbar:`, health by default). Health runs from green at full through
-amber at half to red; Dimension is blue in the Overworld, orange in the
-Nether, violet in the End. Both at half brightness (the pad's full light is
-glaring); menus keep the last colour. The player LEDs show player 1 (the
+yellow and amber at half to red, turning round the colour wheel rather than
+mixing the three anchors' channels: a channel mix kept the amber's red high
+across the top half, and a healthy pad's light read olive instead of green,
+plainly so on a DualShock 4's bar. Dimension is blue in the Overworld, orange
+in the Nether, violet in the End. Both at half brightness (the pad's full light
+is glaring); menus keep the last colour. The player LEDs show player 1 (the
 middle LED). Off leaves both to the pad. When Horizon lets go of the pad, a
 lightbar or LEDs it changed go back to a host's defaults: blue (0, 0, 128)
 and the middle LED, as Linux's driver gives a first pad (neither SDL nor

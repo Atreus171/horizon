@@ -1833,6 +1833,11 @@ impl Lightbar {
     }
     /// The colour for a player with this share of their health in this dimension; at half
     /// brightness, as the pad's full light is glaring.
+    ///
+    /// The health ramp turns round the colour wheel, green through yellow and amber to red,
+    /// rather than mixing the anchors' channels: across the top half an amber's red stays high
+    /// enough that a healthy player's light reads olive instead of green, and a DualShock 4's
+    /// lightbar shows it plainly.
     pub fn colour(self, health: f32, dimension: &str) -> Option<[u8; 3]> {
         let rgb = match self {
             Lightbar::Off => return None,
@@ -1849,7 +1854,13 @@ impl Lightbar {
                 } else {
                     (red, amber, h * 2.0)
                 };
-                [0, 1, 2].map(|i| from[i] + (to[i] - from[i]) * k)
+                if k >= 1.0 {
+                    to
+                } else if k <= 0.0 {
+                    from
+                } else {
+                    hue_lerp(from, to, k)
+                }
             }
             Lightbar::Dimension => match dimension {
                 "minecraft:the_nether" => [234.0, 88.0, 12.0],
@@ -1859,6 +1870,72 @@ impl Lightbar {
         };
         Some(rgb.map(|v| (v * 0.5).round() as u8))
     }
+}
+
+/// `from` and `to` mixed `k` of the way along the shortest way round the colour wheel, their
+/// saturation and lightness in step: two hues mixed by their channels pass through the muddy
+/// grey-green between them, which is what a green and an amber do.
+fn hue_lerp(from: [f32; 3], to: [f32; 3], k: f32) -> [f32; 3] {
+    let a = rgb_to_hsl(from);
+    let b = rgb_to_hsl(to);
+    let mut turn = b[0] - a[0];
+    if turn > 180.0 {
+        turn -= 360.0;
+    } else if turn < -180.0 {
+        turn += 360.0;
+    }
+    hsl_to_rgb([
+        (a[0] + turn * k).rem_euclid(360.0),
+        a[1] + (b[1] - a[1]) * k,
+        a[2] + (b[2] - a[2]) * k,
+    ])
+}
+
+/// Hue in degrees and saturation and lightness in 0..100, from red, green and blue in 0..255.
+fn rgb_to_hsl([r, g, b]: [f32; 3]) -> [f32; 3] {
+    let (r, g, b) = (r / 255.0, g / 255.0, b / 255.0);
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let l = (max + min) / 2.0;
+    let span = max - min;
+    if span <= 0.0 {
+        return [0.0, 0.0, l * 100.0];
+    }
+    let s = if l > 0.5 {
+        span / (2.0 - max - min)
+    } else {
+        span / (max + min)
+    };
+    let h = if max == r {
+        (g - b) / span + if g < b { 6.0 } else { 0.0 }
+    } else if max == g {
+        (b - r) / span + 2.0
+    } else {
+        (r - g) / span + 4.0
+    };
+    [h * 60.0, s * 100.0, l * 100.0]
+}
+
+/// The inverse of [`rgb_to_hsl`].
+fn hsl_to_rgb([h, s, l]: [f32; 3]) -> [f32; 3] {
+    let (s, l) = (s / 100.0, l / 100.0);
+    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
+    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+    let m = l - c / 2.0;
+    let (r, g, b) = if h < 60.0 {
+        (c, x, 0.0)
+    } else if h < 120.0 {
+        (x, c, 0.0)
+    } else if h < 180.0 {
+        (0.0, c, x)
+    } else if h < 240.0 {
+        (0.0, x, c)
+    } else if h < 300.0 {
+        (x, 0.0, c)
+    } else {
+        (c, 0.0, x)
+    };
+    [(r + m) * 255.0, (g + m) * 255.0, (b + m) * 255.0]
 }
 
 /// `BowItem.getPowerForTime`: a bow's draw after this many ticks, 0..1.
@@ -2705,6 +2782,13 @@ bind_key.hotbar.2:north
         assert!(full[1] > full[0], "green at full health: {full:?}");
         assert!(empty[0] > empty[1], "red when dying: {empty:?}");
         assert_eq!(Lightbar::Health.colour(0.5, ""), Some([123, 79, 6]));
+        // A player near full health gets a green: mixing the anchors' channels left the amber's
+        // red high and the light olive.
+        assert_eq!(
+            Lightbar::Health.colour(0.9, ""),
+            Some([15, 103, 17]),
+            "green, not olive, at 90% health"
+        );
         assert_ne!(
             Lightbar::Dimension.colour(1.0, "minecraft:the_nether"),
             Lightbar::Dimension.colour(1.0, "minecraft:overworld")
