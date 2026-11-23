@@ -72,6 +72,8 @@ pub enum Switch {
     BlockVibration,
     /// An Xbox One pad's impulse triggers buzz with its handles.
     ImpulseTriggers,
+    /// A DualShock 4's or DualSense's touchpad moves the pointer in menus.
+    Touchpad,
 }
 
 impl Switch {
@@ -79,12 +81,14 @@ impl Switch {
         match self {
             Switch::BlockVibration => "horizon.options.block_vibration",
             Switch::ImpulseTriggers => "horizon.options.impulse_triggers",
+            Switch::Touchpad => "horizon.options.touchpad",
         }
     }
     fn on(self, s: &Settings) -> bool {
         match self {
             Switch::BlockVibration => s.controller.block_vibration,
             Switch::ImpulseTriggers => s.controller.impulse_triggers,
+            Switch::Touchpad => s.controller.touchpad,
         }
     }
     fn toggle(self, s: &mut Settings) {
@@ -93,6 +97,7 @@ impl Switch {
             Switch::ImpulseTriggers => {
                 s.controller.impulse_triggers = !s.controller.impulse_triggers
             }
+            Switch::Touchpad => s.controller.touchpad = !s.controller.touchpad,
         }
     }
 }
@@ -378,6 +383,10 @@ pub fn rows() -> Vec<(Page, Vec<(&'static str, Vec<Setting>)>)> {
                             Opt::PadLightbar,
                             "What the light on a DualSense or a DualShock 4 shows, over USB or Bluetooth.",
                         ),
+                        switch(
+                            Switch::Touchpad,
+                            "A DualShock 4 or DualSense's touchpad moves the pointer in menus and inventories: tap to click, two fingers to scroll.",
+                        ),
                     ],
                 ),
             ],
@@ -422,6 +431,7 @@ impl Item {
             Item::Option(Opt::PadVibration) => Some(c.vibration),
             Item::Switch(Switch::BlockVibration) => Some(c.block_vibration),
             Item::Switch(Switch::ImpulseTriggers) => Some(c.impulse_triggers),
+            Item::Switch(Switch::Touchpad) => Some(c.touchpad),
             Item::Option(Opt::PadPlayInBackground) => Some(c.play_in_background),
             Item::Option(Opt::PadAdaptiveTriggers) => Some(c.adaptive_triggers),
             Item::Option(Opt::PadInvertX) => Some(c.invert_x),
@@ -787,7 +797,11 @@ mod tests {
         ] {
             assert!(items.contains(&Item::Option(opt)), "{opt:?}");
         }
-        for setting in [Switch::BlockVibration, Switch::ImpulseTriggers] {
+        for setting in [
+            Switch::BlockVibration,
+            Switch::ImpulseTriggers,
+            Switch::Touchpad,
+        ] {
             assert!(items.contains(&Item::Switch(setting)), "{setting:?}");
         }
     }
@@ -805,6 +819,9 @@ mod tests {
             ),
             (Item::Switch(Switch::ImpulseTriggers), |s: &Settings| {
                 s.controller.impulse_triggers
+            }),
+            (Item::Switch(Switch::Touchpad), |s: &Settings| {
+                s.controller.touchpad
             }),
         ] {
             let at = ui.point_at(&s, SIZE, item);

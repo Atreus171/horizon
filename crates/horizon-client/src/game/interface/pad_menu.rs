@@ -19,6 +19,7 @@
 mod keys;
 
 use super::event_loop::EventLoopCtl;
+use super::pad::PadFinger;
 use super::{Game, Screen, key_focus};
 use horizon_client::actions::Action;
 use horizon_client::{
@@ -32,7 +33,7 @@ use horizon_client::{
     widgets::{self, Kind, Target},
 };
 use horizon_client_input::snap;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use winit::{
     dpi::PhysicalPosition,
     event::{DeviceId, ElementState, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent},
@@ -48,6 +49,17 @@ const SCROLL_TRIES: u8 = 4;
 const SAME_RECT: f32 = 0.5;
 /// Frames after a scroll that may still have been drawn before it: their rectangles are stale.
 const STALE_FRAMES: u64 = 1;
+/// A tap moves the first finger no further than this (GUI pixels) ...
+const TAP_SLOP: f32 = 14.0;
+/// ... and is over within this.
+const TAP_TIME: Duration = Duration::from_millis(700);
+/// Two fingers' movement (GUI pixels) per line scrolled.
+const TOUCH_SCROLL: f32 = 24.0;
+
+/// Where a touchpad finger is on screen (GUI pixels).
+fn finger_at(finger: PadFinger, width: f32, height: f32) -> (f32, f32) {
+    (finger.x * width, finger.y * height)
+}
 
 /// Whether the frames drawn since `pad_reveal` scrolled a row, at frame `revealed`, may still
 /// show the list where it was.
@@ -109,6 +121,38 @@ struct StickScrolled {
     before: Vec<Rect>,
     /// How far the focus's list was scrolled, when it has a scrollbar.
     amount: Option<f32>,
+}
+
+/// How a touchpad gesture has gone so far: where its first finger went down, how far it moved,
+/// and the two-finger scroll it may have become. One finger moves the pointer and a tap clicks;
+/// two fingers scroll and never click.
+#[derive(Default)]
+pub(super) struct Touch {
+    /// The report generation the game last acted on.
+    pub(super) generation: u64,
+    /// Where the first finger went down (GUI pixels).
+    anchor: Option<(f32, f32)>,
+    /// How far the first finger has moved from it.
+    far: f32,
+    /// When the gesture started.
+    since: Option<Instant>,
+    /// Two fingers have been down: it scrolls, and lifting doesn't click.
+    two: bool,
+    /// The fingers' last y, and the lines not yet sent as a wheel event.
+    scroll: Option<f32>,
+    lines: f32,
+}
+
+impl Touch {
+    /// Nothing is down: the next contact starts a new gesture, the generation kept so a still
+    /// report isn't read as new.
+    fn lift(&mut self) {
+        let generation = self.generation;
+        *self = Touch {
+            generation,
+            ..Touch::default()
+        };
+    }
 }
 
 #[derive(Default)]
@@ -200,6 +244,8 @@ pub(super) struct MenuCursor {
     prompt_restart: Option<u64>,
     /// The screen and the place the crosshair goes back to when the prompt over it closes.
     prompt_crosshair: Option<(Screen, (f32, f32))>,
+    /// The touchpad's gesture, while a finger is on it.
+    pub(super) touch: Touch,
 }
 
 /// LT held over the crafting book.
@@ -645,6 +691,85 @@ impl Game<'_> {
         self.pad_pointer_to(event_loop, at);
         self.pad_pointer_button(event_loop, right, true);
         self.pad_pointer_button(event_loop, right, false);
+    }
+
+    /// The touchpad's two contacts: one finger moves the pointer and lifting it clicks where it
+    /// went down, two fingers scroll. Menus and inventories only; in play the right stick keeps
+    /// the mouse (docs/controllers.md "Touchpad").
+    fn pad_touch_frame(&mut self, event_loop: &dyn EventLoopCtl) {
+        let Some((contacts, generation)) = self.pad_touch() else {
+            return;
+        };
+        if generation == self.pad.menu.touch.generation {
+            return;
+        }
+        self.pad.menu.touch.generation = generation;
+        let Some(batch) = self.gui_batch() else {
+            return;
+        };
+        let fingers: Vec<(f32, f32)> = contacts
+            .iter()
+            .flatten()
+            .map(|finger| finger_at(*finger, batch.width, batch.height))
+            .collect();
+        let now = Instant::now();
+        let (mut move_to, mut click, mut scroll) = (None, None, 0.0);
+        {
+            let touch = &mut self.pad.menu.touch;
+            match fingers.as_slice() {
+                [] => {
+                    let was = touch.anchor.take();
+                    let tap = was.is_some()
+                        && !touch.two
+                        && touch.far <= TAP_SLOP
+                        && touch
+                            .since
+                            .is_some_and(|since| now.duration_since(since) <= TAP_TIME);
+                    touch.lift();
+                    if tap {
+                        click = was;
+                    }
+                }
+                [at] => {
+                    if touch.anchor.is_none() {
+                        touch.anchor = Some(*at);
+                        touch.since = Some(now);
+                    }
+                    if let Some(anchor) = touch.anchor {
+                        touch.far = touch.far.max((at.0 - anchor.0).hypot(at.1 - anchor.1));
+                    }
+                    // A finger left after a two-finger gesture neither moves the pointer nor
+                    // starts the next scroll from where the old one ended.
+                    touch.scroll = None;
+                    touch.lines = 0.0;
+                    if !touch.two {
+                        move_to = Some(*at);
+                    }
+                }
+                many => {
+                    touch.two = true;
+                    let y = many.iter().map(|finger| finger.1).sum::<f32>() / many.len() as f32;
+                    if let Some(last) = touch.scroll {
+                        touch.lines += (last - y) / TOUCH_SCROLL;
+                    }
+                    touch.scroll = Some(y);
+                    let whole = touch.lines.trunc();
+                    if whole != 0.0 {
+                        touch.lines -= whole;
+                        scroll = whole;
+                    }
+                }
+            }
+        }
+        if let Some(at) = move_to {
+            self.pad_pointer_to(event_loop, at);
+        }
+        if scroll != 0.0 {
+            self.pad_wheel(event_loop, 0.0, scroll);
+        }
+        if let Some(at) = click {
+            self.pad_click_at(event_loop, at, false);
+        }
     }
 
     /// The wheel event being handled only scrolls (`MenuCursor::stick_scroll`).
@@ -1485,6 +1610,7 @@ impl Game<'_> {
             menu.prompt = None;
             menu.prompt_restart = None;
             menu.prompt_crosshair = None;
+            menu.touch = Touch::default();
             self.pad_show_os_pointer(true);
             return;
         }
@@ -1511,6 +1637,7 @@ impl Game<'_> {
         if self.pad.in_use && self.pad.menu.pos.is_none() && self.pad.menu.open_polls == 3 {
             self.pad_take_pointer(event_loop);
         }
+        self.pad_touch_frame(event_loop);
         if !self.pad.in_use && !self.pad.menu.keyboard {
             self.pad_show_os_pointer(true);
             return;

@@ -651,6 +651,10 @@ pub struct PadSettings {
     /// A broken block ticks the pad and splitting a stack buzzes, as in Bedrock
     /// (docs/controllers.md).
     pub block_vibration: bool,
+    /// A DualShock 4's or DualSense's touchpad moves the pointer in menus and
+    /// inventories (docs/controllers.md "Touchpad"). Off by default: it is
+    /// Horizon's own, not vanilla's.
+    pub touchpad: bool,
     /// How hard the handles buzz, 0..1: the player's own strength (docs/controllers.md
     /// "Rumble").
     pub vibration_strength: f32,
@@ -711,6 +715,7 @@ impl Default for PadSettings {
             adaptive_triggers: true,
             impulse_triggers: true,
             block_vibration: true,
+            touchpad: false,
             vibration_strength: 1.0,
             impulse_strength: 1.0,
             lightbar: Lightbar::Health,
@@ -783,6 +788,7 @@ impl PadSettings {
                 "adaptiveTriggers" => s.adaptive_triggers = flag(s.adaptive_triggers),
                 "impulseTriggers" => s.impulse_triggers = flag(s.impulse_triggers),
                 "blockVibration" => s.block_vibration = flag(s.block_vibration),
+                "touchpad" => s.touchpad = flag(s.touchpad),
                 "splitVibration" => legacy_split_vibration = flag(legacy_split_vibration),
                 "vibrationStrength" => s.vibration_strength = unit(s.vibration_strength),
                 "impulseStrength" => s.impulse_strength = unit(s.impulse_strength),
@@ -904,12 +910,13 @@ impl PadSettings {
     }
     pub fn serialize(&self) -> String {
         let mut text = format!(
-            "enabled:{}\nvibration:{}\nadaptiveTriggers:{}\nimpulseTriggers:{}\nblockVibration:{}\nvibrationStrength:{}\nimpulseStrength:{}\nlightbar:{}\nlookSensitivity:{}\ninvertX:{}\ninvertY:{}\nmoveDeadzone:{}\nlookDeadzone:{}\ntriggerThreshold:{}\ntoggleSneak:{}\nglyphs:{}\nnintendoLetters:{}\nkeyboard:{}\n",
+            "enabled:{}\nvibration:{}\nadaptiveTriggers:{}\nimpulseTriggers:{}\nblockVibration:{}\ntouchpad:{}\nvibrationStrength:{}\nimpulseStrength:{}\nlightbar:{}\nlookSensitivity:{}\ninvertX:{}\ninvertY:{}\nmoveDeadzone:{}\nlookDeadzone:{}\ntriggerThreshold:{}\ntoggleSneak:{}\nglyphs:{}\nnintendoLetters:{}\nkeyboard:{}\n",
             bool_text(self.enabled),
             bool_text(self.vibration),
             bool_text(self.adaptive_triggers),
             bool_text(self.impulse_triggers),
             bool_text(self.block_vibration),
+            bool_text(self.touchpad),
             self.vibration_strength,
             self.impulse_strength,
             self.lightbar.name(),
@@ -2872,11 +2879,21 @@ bind_key.hotbar.2:north
         assert!(settings.impulse_triggers && settings.block_vibration);
         let off = PadSettings::parse("impulseTriggers:false\nblockVibration:false\n");
         assert!(!off.impulse_triggers && !off.block_vibration);
-        assert!(
-            off.serialize()
-                .contains("impulseTriggers:false\nblockVibration:false\n")
-        );
-        assert_eq!(PadSettings::parse(&off.serialize()), off);
+        let saved = off.serialize();
+        for line in ["impulseTriggers:false", "blockVibration:false"] {
+            assert!(saved.lines().any(|l| l == line), "{saved}");
+        }
+        assert_eq!(PadSettings::parse(&saved), off);
+    }
+
+    #[test]
+    fn the_touchpad_is_off_until_saved_on() {
+        assert!(!PadSettings::default().touchpad);
+        let on = PadSettings::parse("touchpad:true\n");
+        assert!(on.touchpad);
+        let saved = on.serialize();
+        assert!(saved.lines().any(|line| line == "touchpad:true"), "{saved}");
+        assert_eq!(PadSettings::parse(&saved), on);
     }
 
     #[test]

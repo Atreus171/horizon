@@ -695,6 +695,7 @@ vibration:true
 adaptiveTriggers:true
 impulseTriggers:true
 blockVibration:true
+touchpad:false
 vibrationStrength:1
 impulseStrength:1
 lightbar:health
@@ -1001,6 +1002,28 @@ flags), the pad reporting a feedback and a weapon trigger effect as active,
 and the writer thread. Verified against the references only: everything
 else, the flag-less stop, the attenuation and LED reset reports, and all of
 Bluetooth.
+
+## Touchpad
+
+A DualShock 4's or DualSense's touchpad is Horizon's own option, off by
+default (`touchpad:` in `horizon-controller.txt`). It drives the cursor in
+menus and inventories only: one finger moves the pointer to where it touches,
+and lifting it within 14 GUI pixels and 700 ms clicks there; two fingers
+scroll, 24 pixels a line, and never click. In play the touchpad does nothing:
+the right stick keeps the mouse.
+
+Both pads' reports carry the pad's own coordinates, 1920 wide and 920 tall on a
+DualShock 4 (944 on the hardware; SDL's 920 feels better) or 1070 on a
+DualSense, each finger with a counter whose top bit says it is lifted. Gilrs
+exposes no touchpad, so `horizon-dualsense`'s `touchpad` module opens the pad's
+gamepad collection a second time, beside the writer's own handle, and a thread
+publishes the two contacts and a counter of the reports that changed them: a
+still finger is not new input. It follows the pad the output writes to, and a
+report in a layout it doesn't know is ignored. Turning the option off, the pad
+leaving, or another pad taking over drops the reader and its handle.
+
+Verified against SDL's `SDL_hidapi_ps4.c` and `SDL_hidapi_ps5.c` only (byte
+layouts and scales); no hardware test yet.
 
 ## Xbox One and DualShock 4 output
 

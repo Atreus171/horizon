@@ -4,7 +4,7 @@
 //! pad`'s virtual pad.
 use super::{
     super::{Game, Screen},
-    Connection, PadEvent, Pads,
+    Connection, PadContacts, PadEvent, PadFinger, Pads,
 };
 use horizon_client::controller_ui::Device;
 use horizon_client::gamepad::{self, Button, GlyphStyle, PadState, Rumble, TriggerFeel};
@@ -47,6 +47,9 @@ pub(super) struct Devices {
     xbox_output: Option<xbox::Link>,
     /// The DualShock 4 lightbar's last colour, so a frame that changes nothing writes nothing.
     shown_light: Option<[u8; 3]>,
+    /// The active Sony pad's touchpad, read on a thread of its own (docs/controllers.md
+    /// "Touchpad"), while the player turned it on.
+    touchpad: Option<horizon_dualsense::touchpad::Touchpad>,
     /// Its HD haptics, on USB: looked for once each time the output opens.
     haptics: Option<horizon_dualsense::haptics::Haptics>,
     haptics_tried: bool,
@@ -323,6 +326,16 @@ impl Pads {
         };
     }
 
+    /// The active pad's touchpad contacts and how many reports changed them, while the player
+    /// turned the touchpad on: no pad, no reader, nothing.
+    pub(super) fn pad_touch(&self) -> Option<(PadContacts, u64)> {
+        let (contacts, generation) = self.devices.touchpad.as_ref()?.latest();
+        Some((
+            contacts.map(|finger| finger.map(|f| PadFinger { x: f.x, y: f.y })),
+            generation,
+        ))
+    }
+
     /// Splitscreen reads the pads for every player (`PadRouter`): this game's own gilrs closes, or
     /// its events would queue up unread. It opens again if this game reads the pads itself.
     /// While several play, the router plays their rumble (`PadRouter::play_rumbles`), and nobody
@@ -414,6 +427,7 @@ impl Pads {
             // The output follows the pad in use: a new one must not keep writing to the old.
             self.devices.xbox_output = None;
             self.devices.shown_light = None;
+            self.devices.touchpad = None;
         }
         let Some(pad) = self
             .devices
@@ -673,6 +687,13 @@ impl PadRouter {
             .as_ref()
             .and_then(|g| g.connected_gamepad(id))
             .is_some_and(|p| is_dualshock(&p));
+        pads.devices.xbox_target = self
+            .gilrs
+            .as_ref()
+            .and_then(|g| xbox_target(g, id))
+            .unwrap_or(xbox::Target::ANY);
+        // The touchpad reader follows the pad this game now plays.
+        pads.devices.touchpad = None;
         pads.devices.active = Some(id);
         pads.devices.started = true;
         pads.devices.gilrs = self.gilrs.take();
@@ -795,7 +816,14 @@ impl Game<'_> {
     pub(super) fn pad_output_off(&mut self) {
         self.pad.devices.output = None;
         self.pad.devices.drop_xbox_output();
+        self.pad.devices.touchpad = None;
         self.pad.devices.shown = None;
+    }
+
+    /// The active pad's touchpad contacts and how many reports changed them; `None` while the
+    /// player has it off or no pad with one is playing.
+    pub(in crate::game) fn pad_touch(&self) -> Option<(PadContacts, u64)> {
+        self.pad.pad_touch()
     }
 
     /// After each poll: a pad's own output opens once this window has the pad in hand, then
@@ -814,6 +842,19 @@ impl Game<'_> {
             && self.pad.devices.xbox_output.is_none()
         {
             self.pad.devices.xbox_output = Some(xbox::Link::start(self.pad.devices.xbox_target));
+        }
+        // The touchpad's reader follows the pad in hand: only a Sony pad has the hardware, and
+        // only the player's switch turns it on. It opens without waiting for a button, so the
+        // first touch is caught.
+        let touchpad = self.settings.controller.touchpad
+            && (self.pad.devices.dualsense || self.pad.devices.dualshock)
+            && self.pad_has_window();
+        if touchpad && self.pad.devices.touchpad.is_none() {
+            self.pad.devices.touchpad = Some(horizon_dualsense::touchpad::Touchpad::start(
+                self.pad.devices.xbox_target,
+            ));
+        } else if !touchpad {
+            self.pad.devices.touchpad = None;
         }
         self.pad_haptics();
         self.pad_show();
@@ -992,6 +1033,7 @@ impl Game<'_> {
         self.pad.devices.haptics = None;
         self.pad.devices.output = None;
         self.pad.devices.drop_xbox_output();
+        self.pad.devices.touchpad = None;
     }
 
     /// Play a vibration on the active pad: a DualSense through its own report, an Xbox One pad

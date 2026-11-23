@@ -2,8 +2,10 @@
 //! output" and "Xbox One and DualShock 4 output"). Gilrs keeps reading the pads; this crate only
 //! writes to them. [`device`] is the DualSense's: the compatible-vibration motors, the adaptive
 //! triggers, the lightbar and the player LEDs. [`xbox`] is an Xbox One pad's: its two handles and
-//! the two impulse triggers. [`dualshock`] is a DualShock 4's: its two handles. On iOS the crate
-//! builds without hidapi, which has no backend there: the links never open.
+//! the two impulse triggers. [`dualshock`] is a DualShock 4's: its two handles. Gilrs keeps
+//! reading the pads' buttons and sticks; [`touchpad`] reads the one thing it doesn't expose, a
+//! Sony pad's touchpad, from the same handle's input reports. On iOS the crate builds without
+//! hidapi, which has no backend there: the links never open.
 //!
 //! The DualSense's byte layout is the one documented by the Linux kernel's `hid-playstation.c`
 //! and SDL's `SDL_hidapi_ps5.c`: a 47-byte block shared by both transports, sent as report 0x02
@@ -18,6 +20,9 @@ pub mod haptics;
 #[cfg(target_os = "ios")]
 #[path = "haptics_stub.rs"]
 pub mod haptics;
+/// A DualShock 4's or DualSense's touchpad, read from its input reports (docs/controllers.md
+/// "Touchpad").
+pub mod touchpad;
 pub mod trigger;
 /// An Xbox One pad's output: its two handle motors and its two impulse triggers
 /// (docs/controllers.md "Xbox One and DualShock 4 output").

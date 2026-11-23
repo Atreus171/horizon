@@ -183,6 +183,17 @@ enum Connection {
     Disconnected { active: bool },
 }
 
+/// A finger on the active pad's touchpad, 0..1 across its surface, left to right and top to
+/// bottom.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(in crate::game) struct PadFinger {
+    pub x: f32,
+    pub y: f32,
+}
+
+/// The two contacts a Sony pad's touchpad report carries, `None` where that finger is lifted.
+pub(in crate::game) type PadContacts = [Option<PadFinger>; 2];
+
 /// What a controller did since the last frame.
 #[cfg_attr(not(feature = "controllers"), allow(dead_code))]
 pub(in crate::game) enum PadEvent {
@@ -260,6 +271,9 @@ mod hardware {
         pub(super) fn pad_output_off(&mut self) {}
         pub(super) fn pad_output_frame(&mut self) {}
         pub(in crate::game) fn pad_close_output(&mut self) {}
+        pub(in crate::game) fn pad_touch(&self) -> Option<(super::PadContacts, u64)> {
+            None
+        }
         pub(super) fn pad_vibrate(&mut self, _: Rumble, _: Pulse) {}
         pub(super) fn pad_devices_status(&self) -> Value {
             json!({ "backend": false, "controllers": [] })
@@ -459,6 +473,18 @@ impl Game<'_> {
             self.pad.keyboard_took_over = false;
         }
         self.pad.state = state;
+        // A finger on the touchpad hands the menus to the pad. In play it does nothing: the
+        // right stick keeps the mouse (docs/controllers.md "Touchpad").
+        if let Some((contacts, generation)) = self.pad_touch()
+            && generation != self.pad.menu.touch.generation
+        {
+            self.pad.menu.touch.generation = generation;
+            if self.pad_in_menu() && contacts.iter().any(Option::is_some) && self.pad_focused() {
+                self.last_input = Instant::now();
+                self.pad.in_use = true;
+                self.pad.keyboard_took_over = false;
+            }
+        }
         self.pad_radial_frame();
         self.pad_drop_frame();
         self.pad_output_frame();
