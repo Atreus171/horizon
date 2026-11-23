@@ -824,9 +824,11 @@ mod tests {
                 s.controller.touchpad
             }),
         ] {
+            let before = read(&s);
             let at = ui.point_at(&s, SIZE, item);
-            ui.click(&mut s, at, SIZE, false, false, false);
-            assert!(!read(&s) && ui.changed(), "{item:?}");
+            let out = ui.click(&mut s, at, SIZE, false, false, false);
+            assert_ne!(read(&s), before, "{item:?}");
+            assert!(out.contains(&CHANGED), "{item:?}: {out:?}");
         }
     }
 
