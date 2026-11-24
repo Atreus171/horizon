@@ -1077,19 +1077,23 @@ ids.
   and sends it again with every report and when the pad comes back; Off drops
   it, so later reports leave the lightbar to the pad. Windows, Linux and macOS
   all take these reports; unit tests pin them to SDL's `SDL_hidapi_ps4.c`.
-- **A Bluetooth report takes the control pipe on Windows.** A report written to
+- **A Bluetooth report takes the interrupt pipe first.** A report written to
   a Bluetooth pad's interrupt-out pipe can be accepted and never delivered: the
   driver returns success and the adapter drops it (hidapi's known issue,
   [libusb/hidapi#513](https://github.com/libusb/hidapi/issues/513),
   "hid_write may silently drop output reports on some BLE adapters/devices").
-  A DualShock 4 is one of the pads that report was about, so its Bluetooth
-  report goes out with Set_Report over the control endpoint
-  (`hidapi`'s `send_output_report`), falling back to the interrupt-out write
-  where the stack refuses it; DS4Windows sends its own Bluetooth output the
-  same way. The other pads keep the interrupt-out pipe, which is the path SDL
-  takes. If the pad still ignores reports, `HORIZON_CONTROLLER_LOG` now logs the
-  collection the writer opened (vendor and product ids, usage page, usage,
-  interface) beside each report.
+  A DualShock 4 was one of the pads that report was about, so a first attempt
+  sent its Bluetooth report with Set_Report over the control endpoint
+  (`hidapi`'s `send_output_report`) instead. The pad took every report and did
+  nothing: a player's DualShock 4 stayed silent on Bluetooth while the log
+  showed each write accepted, which is what a control-pipe report the pad
+  ignores looks like. The report goes back on the interrupt-out pipe now, as
+  SDL (`SDL_hidapi_ps4.c`) and DS4Windows (`DS4Device.writeOutput`) send it,
+  and the control pipe is the fallback only for a stack that refuses the
+  interrupt write: one report that has to take it says so once in the log. The
+  other pads keep the interrupt-out pipe.
+  `HORIZON_CONTROLLER_LOG` also logs the collection the writer opened (vendor
+  and product ids, usage page, usage, interface) beside each report.
 - **Splitscreen.** Each player's pad keeps its own four motors. P1's game owns
   its output while its turn runs; a guest's game has no output path of its own,
   so the router that feeds the guests opens one link per guest pad, with that

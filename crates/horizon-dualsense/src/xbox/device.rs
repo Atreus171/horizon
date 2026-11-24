@@ -275,7 +275,7 @@ impl Xbox {
                     device.write(&bluetooth(motors))?;
                 }
                 // The trigger levels are dropped: a DualShock 4 has no trigger motors. Over
-                // Bluetooth the report takes the control pipe on Windows: see `write_bluetooth`.
+                // Bluetooth the report takes the interrupt pipe first: see `write_bluetooth`.
                 (Frame::Dualshock, Transport::Usb) => {
                     device.write(&dualshock::usb(motors, light))?;
                 }
@@ -290,18 +290,45 @@ impl Xbox {
     }
 }
 
-/// A report over Bluetooth. On Windows a report written to the interrupt-out pipe can be
-/// **silently dropped**: the driver takes `WriteFile` and the adapter never delivers it (hidapi's
-/// known issue, "Bluetooth: hid_write may silently drop output reports on some BLE
-/// adapters/devices", libusb/hidapi#513). A DualShock 4 was one of the pads that report was about;
-/// DS4Windows sends its Bluetooth output over the control pipe for the same reason. So the
-/// DualShock's report goes through `send_output_report` (Set_Report over the control endpoint) and
-/// falls back to `write` where the stack refuses that.
+/// A report over Bluetooth. The interrupt-out pipe is the one a DualShock 4 listens to, as SDL
+/// (`SDL_hidapi_ps4.c`) and DS4Windows (`DS4Device.writeOutput`) send it. The control pipe
+/// (`send_output_report`, Set_Report) is the fallback for a stack that refuses the interrupt
+/// write: a report there can be accepted and never delivered, which is what a player's DualShock 4
+/// over Bluetooth showed — every Set_Report took, and the pad stayed silent. (The interrupt pipe
+/// has its own silent-drop report on some adapters, libusb/hidapi#513; hence both, in this order.)
 #[cfg(windows)]
 fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(), HidError> {
-    match device.send_output_report(report) {
+    send_bluetooth(
+        report,
+        |r| device.write(r).map(|_| ()),
+        |r| device.send_output_report(r),
+    )
+}
+
+/// The interrupt-out pipe first, the control pipe only if it fails: a report the first one takes
+/// is not written twice. The error that comes back is the interrupt pipe's, the one that says what
+/// went wrong with the pad.
+#[cfg(windows)]
+fn send_bluetooth<E: std::fmt::Display>(
+    report: &[u8],
+    interrupt: impl FnOnce(&[u8]) -> std::result::Result<(), E>,
+    control: impl FnOnce(&[u8]) -> std::result::Result<(), E>,
+) -> std::result::Result<(), E> {
+    match interrupt(report) {
         Ok(()) => Ok(()),
-        Err(_) => device.write(report).map(|_| ()),
+        Err(interrupt) => match control(report) {
+            Ok(()) => {
+                // A stack that needs the control pipe is unusual: say so once, not per report.
+                static FELL_BACK: AtomicBool = AtomicBool::new(false);
+                if !FELL_BACK.swap(true, Ordering::Relaxed) {
+                    log::info!(
+                        "Horizon: controller: a Bluetooth report took the control pipe: {interrupt}"
+                    );
+                }
+                Ok(())
+            }
+            Err(_) => Err(interrupt),
+        },
     }
 }
 
@@ -780,6 +807,54 @@ mod tests {
                 (Motors::STOP, Some([0x11, 0x9d, 0x2e])),
                 (Motors::STOP, None),
                 (Motors::levels(0.5, 0.0, [0.0; 2]), None),
+            ]
+        );
+    }
+
+    /// The DualShock 4's Bluetooth report takes the interrupt-out pipe first, the one SDL and
+    /// DS4Windows write; a report it takes is not also sent over the control pipe.
+    #[cfg(windows)]
+    #[test]
+    fn a_bluetooth_report_takes_the_interrupt_pipe_first() {
+        let calls = std::cell::RefCell::new(Vec::new());
+        let result = send_bluetooth(
+            b"report",
+            |report| {
+                calls.borrow_mut().push(("interrupt", report.to_vec()));
+                Ok::<(), &str>(())
+            },
+            |report| {
+                calls.borrow_mut().push(("control", report.to_vec()));
+                Ok::<(), &str>(())
+            },
+        );
+        assert_eq!(result, Ok(()));
+        assert_eq!(*calls.borrow(), vec![("interrupt", b"report".to_vec())]);
+    }
+
+    /// An interrupt write the stack refuses hands the same report to the control pipe, and that
+    /// still counts as delivered: the pad stays open.
+    #[cfg(windows)]
+    #[test]
+    fn a_refused_interrupt_write_falls_back_to_the_control_pipe() {
+        let calls = std::cell::RefCell::new(Vec::new());
+        let result = send_bluetooth(
+            b"report",
+            |report| {
+                calls.borrow_mut().push(("interrupt", report.to_vec()));
+                Err::<(), &str>("the endpoint is busy")
+            },
+            |report| {
+                calls.borrow_mut().push(("control", report.to_vec()));
+                Ok::<(), &str>(())
+            },
+        );
+        assert_eq!(result, Ok(()));
+        assert_eq!(
+            *calls.borrow(),
+            vec![
+                ("interrupt", b"report".to_vec()),
+                ("control", b"report".to_vec()),
             ]
         );
     }
