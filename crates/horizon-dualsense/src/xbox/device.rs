@@ -95,6 +95,25 @@ pub struct Xbox {
     transport: Transport,
     /// Which reports it takes: an Xbox One pad's or a DualShock 4's.
     frame: Frame,
+    /// Which of the DualShock 4's reports a Bluetooth link takes, and in which layout.
+    report: Report,
+}
+
+/// The report a Bluetooth DualShock 4 is given. Sony's pad takes report 0x11, the effect at byte 6.
+/// A clone takes the USB effect offsets instead, but Windows refuses a report ID the pad's
+/// Bluetooth collection doesn't declare (`ERROR_INVALID_PARAMETER`), so which packet carries them
+/// differs: most clones declare 0x11 like Sony's, some declare 0x05.
+#[cfg(not(target_os = "ios"))]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Report {
+    /// Sony's 0x11 report, effect at 6: [`dualshock::bluetooth`].
+    Sony,
+    /// A clone that declares 0x11: that report with the USB offsets inside
+    /// ([`dualshock::usb_layout_in_bluetooth`]).
+    UsbInSony,
+    /// A clone that declares 0x05: the USB report with the Bluetooth CRC
+    /// ([`dualshock::usb_over_bluetooth`]).
+    Usb,
 }
 
 #[cfg(not(target_os = "ios"))]
@@ -198,6 +217,7 @@ impl Xbox {
                         backend: Backend::Wgi(pad),
                         transport: Transport::Usb,
                         frame,
+                        report: Report::Sony,
                     }));
                 }
                 // Bluetooth: the pad's own report is the proven path for its triggers. WGI takes
@@ -207,11 +227,12 @@ impl Xbox {
                         && transport(info) == Transport::Bluetooth
                         && let Ok(device) = info.open_device(api)
                     {
-                        log_open(info, frame, Transport::Bluetooth);
+                        log_open(info, frame, Transport::Bluetooth, Report::Sony);
                         return Some(Ok(Xbox {
                             backend: Backend::Hid(device),
                             transport: Transport::Bluetooth,
                             frame,
+                            report: Report::Sony,
                         }));
                     }
                     // Another process holds the endpoint (the launcher): WGI takes the pad.
@@ -219,6 +240,7 @@ impl Xbox {
                         backend: Backend::Wgi(pad),
                         transport: Transport::Bluetooth,
                         frame,
+                        report: Report::Sony,
                     }));
                 }
                 Ok(None) => {}
@@ -230,11 +252,37 @@ impl Xbox {
             if takes_report(transport) {
                 match info.open_device(api) {
                     Ok(device) => {
-                        log_open(info, frame, transport);
+                        // Only a pad on Bluetooth answers this differently: over a cable both
+                        // kinds take the USB report. A pad that isn't Sony's reads the USB
+                        // offsets; most of those also declare 0x11 on Bluetooth (Windows refuses
+                        // the 0x05 report there), and a few declare 0x05.
+                        //
+                        // The clone reading is a Windows observation (DS4Windows takes a Bluetooth
+                        // pad's serial from `HidD_GetSerialNumberString`, and that is what a clone
+                        // differs in), so it stays there: elsewhere a genuine pad whose serial the
+                        // backend doesn't expose keeps Sony's report, as it had.
+                        let mut report = Report::Sony;
+                        #[cfg(windows)]
+                        if frame == Frame::Dualshock
+                            && transport == Transport::Bluetooth
+                            && !is_sonys_dualshock(info.serial_number())
+                        {
+                            report = Report::UsbInSony;
+                        }
+                        // A pad that copies a serial too is the one guess that can go wrong:
+                        // `HORIZON_CONTROLLER_REPORT=btusb|usb|sony` settles it without a build.
+                        match std::env::var("HORIZON_CONTROLLER_REPORT").as_deref() {
+                            Ok("btusb") if frame == Frame::Dualshock => report = Report::UsbInSony,
+                            Ok("usb") if frame == Frame::Dualshock => report = Report::Usb,
+                            Ok("sony") if frame == Frame::Dualshock => report = Report::Sony,
+                            _ => {}
+                        }
+                        log_open(info, frame, transport, report);
                         return Some(Ok(Xbox {
                             backend: Backend::Hid(device),
                             transport,
                             frame,
+                            report,
                         }));
                     }
                     Err(e) => return Some(Err(e.into())),
@@ -279,9 +327,38 @@ impl Xbox {
                 (Frame::Dualshock, Transport::Usb) => {
                     device.write(&dualshock::usb(motors, light))?;
                 }
-                (Frame::Dualshock, Transport::Bluetooth) => {
-                    write_bluetooth(device, &dualshock::bluetooth(motors, light))?;
-                }
+                // A pad that isn't Sony's reads the USB offsets. Windows refuses a report ID the
+                // pad's Bluetooth collection doesn't declare (`ERROR_INVALID_PARAMETER`), so a
+                // clone that declares only 0x11 takes that report with the USB layout inside it,
+                // and one that declares 0x05 takes the USB report with the CRC. A refusal by the
+                // stack says which the pad declares: the other packet is tried, once, and kept.
+                (Frame::Dualshock, Transport::Bluetooth) => match self.report {
+                    Report::Sony => {
+                        write_bluetooth(device, &dualshock::bluetooth(motors, light))?;
+                    }
+                    Report::UsbInSony => {
+                        let layout = dualshock::usb_layout_in_bluetooth(motors, light);
+                        if let Err(first) = write_bluetooth(device, &layout) {
+                            let usb = dualshock::usb_over_bluetooth(motors, light);
+                            write_bluetooth(device, &usb).map_err(|_| first)?;
+                            self.report = Report::Usb;
+                            log::info!(
+                                "Horizon: controller: this pad's Bluetooth collection declares report 0x05, not 0x11: it takes the USB report with the CRC"
+                            );
+                        }
+                    }
+                    Report::Usb => {
+                        let usb = dualshock::usb_over_bluetooth(motors, light);
+                        if let Err(first) = write_bluetooth(device, &usb) {
+                            let layout = dualshock::usb_layout_in_bluetooth(motors, light);
+                            write_bluetooth(device, &layout).map_err(|_| first)?;
+                            self.report = Report::UsbInSony;
+                            log::info!(
+                                "Horizon: controller: this pad's Bluetooth collection declares report 0x11, not 0x05: it takes Sony's report with the USB layout inside it"
+                            );
+                        }
+                    }
+                },
             },
             #[cfg(windows)]
             Backend::Wgi(pad) => pad.write(motors)?,
@@ -295,9 +372,14 @@ impl Xbox {
 /// (`send_output_report`, Set_Report) is the fallback for a stack that refuses the interrupt
 /// write: a report there can be accepted and never delivered, which is what a player's DualShock 4
 /// over Bluetooth showed — every Set_Report took, and the pad stayed silent. (The interrupt pipe
-/// has its own silent-drop report on some adapters, libusb/hidapi#513; hence both, in this order.)
+/// has its own silent-drop report on some adapters, libusb/hidapi#513, which surfaces as `Ok`, so
+/// the fallback cannot see it: `HORIZON_CONTROLLER_PIPE=control` takes the control pipe first for
+/// a pad that comes out silent there.)
 #[cfg(windows)]
 fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(), HidError> {
+    if std::env::var("HORIZON_CONTROLLER_PIPE").as_deref() == Ok("control") {
+        return device.send_output_report(report);
+    }
     send_bluetooth(
         report,
         |r| device.write(r).map(|_| ()),
@@ -307,8 +389,8 @@ fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(),
 
 /// The interrupt-out pipe first, the control pipe only if it fails: a report the first one takes
 /// is not written twice. The error that comes back is the interrupt pipe's, the one that says what
-/// went wrong with the pad.
-#[cfg(windows)]
+/// went wrong with the pad. The closures name no platform, so the tests below run everywhere.
+#[cfg(any(windows, test))]
 fn send_bluetooth<E: std::fmt::Display>(
     report: &[u8],
     interrupt: impl FnOnce(&[u8]) -> std::result::Result<(), E>,
@@ -340,20 +422,62 @@ fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(),
 
 /// Which collection the reports go to, when `HORIZON_CONTROLLER_LOG` asks: a DualShock 4 lists a
 /// gamepad collection (usage page 1, usage 5) and a vendor-specific one, and only the gamepad one
-/// carries output.
-fn log_open(info: &hidapi::DeviceInfo, frame: Frame, transport: Transport) {
-    if std::env::var_os("HORIZON_CONTROLLER_LOG").is_some() {
-        log::info!(
-            "Horizon: controller: opened {:04x}:{:04x} usage page {} usage {} interface {} as {:?} over {:?}",
-            info.vendor_id(),
-            info.product_id(),
-            info.usage_page(),
-            info.usage(),
-            info.interface_number(),
-            frame,
-            transport,
-        );
+/// carries output. A DualShock 4 on Bluetooth also gets a line naming the pad, whether it lists a
+/// serial, and which report it was given: that is the question a "no vibration over Bluetooth"
+/// report turns on.
+fn log_open(info: &hidapi::DeviceInfo, frame: Frame, transport: Transport, report: Report) {
+    if std::env::var_os("HORIZON_CONTROLLER_LOG").is_none() {
+        return;
     }
+    log::info!(
+        "Horizon: controller: opened {:04x}:{:04x} usage page {} usage {} interface {} as {:?} over {:?}",
+        info.vendor_id(),
+        info.product_id(),
+        info.usage_page(),
+        info.usage(),
+        info.interface_number(),
+        frame,
+        transport,
+    );
+    if frame == Frame::Dualshock && transport == Transport::Bluetooth {
+        let serial = info
+            .serial_number()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        let what = match report {
+            Report::Sony => "Sony's 0x11 report",
+            Report::UsbInSony => "Sony's 0x11 report with the USB layout inside it",
+            Report::Usb => "the USB report with the CRC",
+        };
+        // The serial, its maker and the verdict the classifier takes from it, side by side: a clone
+        // that copies Sony's ids leaves the serial empty or unlike a pad's address, and that is what
+        // decides the report above (`is_sonys_dualshock`). On Windows the verdict chose the report;
+        // elsewhere the report stays Sony's and this line only says what the serial looks like.
+        log::info!(
+            "Horizon: controller: the pad lists {:?} by {:?} serial {:?} (Sony's: {}): it takes {what} over Bluetooth",
+            info.product_string(),
+            info.manufacturer_string(),
+            serial,
+            is_sonys_dualshock(serial),
+        );
+        if let Ok(forced) = std::env::var("HORIZON_CONTROLLER_REPORT")
+            && !forced.is_empty()
+        {
+            log::info!("Horizon: controller: HORIZON_CONTROLLER_REPORT={forced} chose that report");
+        }
+    }
+}
+
+/// Whether a DualShock 4 is Sony's, from the serial its descriptor lists: DS4Windows'
+/// `ReadSerial` takes a Bluetooth pad's from there (`HidD_GetSerialNumberString`), and Sony's
+/// pads list theirs. A pad that lists none is one of the clones that only know the USB report,
+/// which is where Windows lists it as a generic "HID-compliant game controller". A pad that
+/// copies a serial too is why `HORIZON_CONTROLLER_REPORT` exists.
+fn is_sonys_dualshock(serial: Option<&str>) -> bool {
+    serial.is_some_and(|serial| {
+        let digits: Vec<char> = serial.chars().filter(char::is_ascii_hexdigit).collect();
+        digits.len() >= 6 && digits.iter().any(|&digit| digit != '0')
+    })
 }
 
 /// A vibration: the motors' levels, each for a while, in order.
@@ -642,14 +766,16 @@ impl Writer {
         }
     }
     /// Drop a handle that hidapi failed on, and look for the pad again: one that slept or was
-    /// unplugged may come back. Nothing is written through the old handle.
+    /// unplugged may come back. Nothing is written through the old handle. The scan waits a second
+    /// like every other one: a pad that refuses every report would otherwise be opened, written to
+    /// and dropped thousands of times a second.
     fn lost(&mut self, why: &str) {
         log::info!("Xbox output closed: {why}");
         self.pad = None;
         self.sent = None;
         self.open.store(0, Ordering::Relaxed);
         self.scans_left = SCAN_TRIES;
-        self.next_scan = Instant::now();
+        self.next_scan = Instant::now() + Duration::from_secs(1);
     }
 }
 
@@ -704,6 +830,9 @@ mod tests {
         assert_eq!(open.load(Ordering::Relaxed), 0);
         assert!(writer.sent.is_none());
         assert_eq!(writer.scans_left, SCAN_TRIES);
+        // The next scan waits like any other: a pad that refuses every report is not opened
+        // thousands of times a second.
+        assert!(writer.next_scan > Instant::now() + Duration::from_millis(500));
         // The handle that failed is not written through again.
         writer.flush();
         assert_eq!(writes.lock().unwrap().len(), 1);
@@ -813,7 +942,6 @@ mod tests {
 
     /// The DualShock 4's Bluetooth report takes the interrupt-out pipe first, the one SDL and
     /// DS4Windows write; a report it takes is not also sent over the control pipe.
-    #[cfg(windows)]
     #[test]
     fn a_bluetooth_report_takes_the_interrupt_pipe_first() {
         let calls = std::cell::RefCell::new(Vec::new());
@@ -834,7 +962,6 @@ mod tests {
 
     /// An interrupt write the stack refuses hands the same report to the control pipe, and that
     /// still counts as delivered: the pad stays open.
-    #[cfg(windows)]
     #[test]
     fn a_refused_interrupt_write_falls_back_to_the_control_pipe() {
         let calls = std::cell::RefCell::new(Vec::new());
@@ -857,5 +984,15 @@ mod tests {
                 ("control", b"report".to_vec()),
             ]
         );
+    }
+
+    /// Sony's pad lists a serial; the pad a player reported — a generic "HID-compliant game
+    /// controller" in Windows, with none — does not, and so takes the USB report over Bluetooth.
+    #[test]
+    fn a_dualshock_without_a_serial_is_not_sonys() {
+        assert!(is_sonys_dualshock(Some("a0ab51c2d3e4")));
+        assert!(!is_sonys_dualshock(None));
+        assert!(!is_sonys_dualshock(Some("")));
+        assert!(!is_sonys_dualshock(Some("00:00:00:00:00:00")));
     }
 }

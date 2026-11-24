@@ -1077,6 +1077,34 @@ ids.
   and sends it again with every report and when the pad comes back; Off drops
   it, so later reports leave the lightbar to the pad. Windows, Linux and macOS
   all take these reports; unit tests pin them to SDL's `SDL_hidapi_ps4.c`.
+- **A DualShock 4 that isn't Sony's reads the USB offsets.** The ids Sony's
+  pads wear are the ones a clone copies, and those pads know only the USB
+  layout. A 0x11 report still reaches them, but they read its bytes with the
+  USB offsets: its byte 1 is `0xC0 | 4`, which they take for the mask — blink
+  bit (0x04) set, motors' bit (0x01) clear — so the lightbar blinks its default
+  white and neither handle moves. That is exactly what a player's `054c:05c4`
+  did over Bluetooth while the same pad rumbled and changed colour over a
+  cable. Those pads take a packet with the USB effect offsets now: the mask at
+  byte 1, the handles at 4 and 5, the colour at 6..8. Which packet carries them
+  depends on the report ID the pad's Bluetooth collection declares, and Windows
+  refuses any other with `ERROR_INVALID_PARAMETER` before it reaches the pad:
+  most clones declare 0x11 as Sony's do, and take the 32-byte USB report's
+  bytes inside it (78 bytes, effect at 4..8, CRC-32 of the seed 0xA2 and the
+  first 74 bytes); a pad that declares 0x05 takes the USB report with the CRC
+  after it (32 bytes, SDL's third-party mask — handles, LED and blink — with
+  the colour after the handles, black when the game has none, CRC over the
+  first 28 bytes), which is what SDL sends its third-party branch on both links
+  and what DS4Windows calls `OnlyOutputData0x05`. The writer tries the first
+  and, if the stack refuses it, the second, keeps the one that took, and says so
+  once. Sony's own pads keep 0x11 with the effect at 6. On Windows the pad is
+  Sony's when its descriptor lists a serial, which is where DS4Windows reads one
+  on Bluetooth; a pad that lists none is one of the clones, which Windows lists
+  as a generic "HID-compliant game controller". That test is Windows-only, where
+  the evidence is: elsewhere a genuine pad whose serial the backend doesn't
+  expose keeps Sony's report, as before. The log says which was opened, the
+  product, maker and serial the pad lists, and which report it got. A clone that
+  copies a serial too is the one guess that can go wrong, so
+  `HORIZON_CONTROLLER_REPORT=btusb|usb|sony` forces the report.
 - **A Bluetooth report takes the interrupt pipe first.** A report written to
   a Bluetooth pad's interrupt-out pipe can be accepted and never delivered: the
   driver returns success and the adapter drops it (hidapi's known issue,
@@ -1091,7 +1119,11 @@ ids.
   SDL (`SDL_hidapi_ps4.c`) and DS4Windows (`DS4Device.writeOutput`) send it,
   and the control pipe is the fallback only for a stack that refuses the
   interrupt write: one report that has to take it says so once in the log. The
-  other pads keep the interrupt-out pipe.
+  other pads keep the interrupt-out pipe. That fallback cannot see a silent
+  drop, which also returns success, so `HORIZON_CONTROLLER_PIPE=control` sends
+  a Bluetooth pad's report on the control pipe first: it is the way out for a
+  genuine pad that comes out silent on an adapter with that fault, without a
+  build.
   `HORIZON_CONTROLLER_LOG` also logs the collection the writer opened (vendor
   and product ids, usage page, usage, interface) beside each report.
 - **Splitscreen.** Each player's pad keeps its own four motors. P1's game owns
@@ -1131,16 +1163,20 @@ ids.
 - **Thread.** A report can block for milliseconds, so a thread of its own owns
   the pad, as the DualSense's does: the game hands it the vibration's steps, it
   writes the motors and ends them, and it looks for the pad again when it goes.
-- **Failures.** A failed write drops the handle and the thread scans again. The
-  writer does *not* probe with a zero-timeout read first: on Windows hidapi's
-  overlapped read answers `ERROR_BUSY` (0xAA) whenever no input report is
-  waiting, which closed the link on the first vibration over Bluetooth. A
-  handle the launcher holds makes the HID open fail, and the writer then tries
-  WGI, which isn't exclusive.
+- **Failures.** A failed write drops the handle and the thread scans again
+  after the usual second: a pad that refuses every report is not opened and
+  dropped thousands of times a second, which is what a report ID its Bluetooth
+  collection doesn't declare (above) used to do. The writer does *not* probe
+  with a zero-timeout read first: on Windows hidapi's overlapped read answers
+  `ERROR_BUSY` (0xAA) whenever no input report is waiting, which closed the link
+  on the first vibration over Bluetooth. A handle the launcher holds makes the
+  HID open fail, and the writer then tries WGI, which isn't exclusive.
 - **Seeing what is sent.** `HORIZON_CONTROLLER_LOG=1` logs, at info level,
   every rumble the game plays (its name, the path it took and the four levels
   after the strengths split them) and, once per pad, what the link opened
-  (frame and transport) or that it found none. It is how a "vibration does
+  (frame and transport) or that it found none — and for a DualShock 4 on
+  Bluetooth, the product, maker and serial the pad lists, the verdict taken
+  from that serial, and which report it was given. It is how a "vibration does
   nothing" report is read: no "opened" line means the link never had the pad.
   Set it in the environment before starting the game; the log lands with the
   rest of the game's log.
@@ -1151,7 +1187,8 @@ them (Chromium's writer is BSD):
 | Reference | Read at | What it settles |
 | --- | --- | --- |
 | SDL [`SDL_hidapi_xboxone.c`](https://github.com/libsdl-org/SDL/blob/6defbc0129b5ba90bab3f6c67bbc1e9329e24ff1/src/joystick/hidapi/SDL_hidapi_xboxone.c) (zlib) | `6defbc0` | the 13-byte USB and 9-byte Bluetooth reports, 0x0F, the device ids, `ControllerHasTriggerRumble`, the Windows `\\?\HID#` skip, the 0..100 GIP levels |
-| SDL [`SDL_hidapi_ps4.c`](https://github.com/libsdl-org/SDL/blob/6defbc0129b5ba90bab3f6c67bbc1e9329e24ff1/src/joystick/hidapi/SDL_hidapi_ps4.c) (zlib) | `6defbc0` | the DualShock 4's report 0x05 over USB and 0x11 over Bluetooth, the effect mask, `DS4EffectsState_t`'s rumble, LED and flash order, the offsets and order, the Bluetooth CRC |
+| SDL [`SDL_hidapi_ps4.c`](https://github.com/libsdl-org/SDL/blob/6defbc0129b5ba90bab3f6c67bbc1e9329e24ff1/src/joystick/hidapi/SDL_hidapi_ps4.c) (zlib) | `6defbc0` | the DualShock 4's report 0x05 over USB and 0x11 over Bluetooth, the effect mask, `DS4EffectsState_t`'s rumble, LED and flash order, the offsets and order, the Bluetooth CRC, and the USB report a third-party pad takes on both links |
+| DS4Windows [`DS4Device.cs`](https://github.com/Ryochan7/DS4Windows) | 2026-11 | report 0x11's bytes over Bluetooth, `writeOutput` on the interrupt pipe, the serial a pad lists and `isValidSerial`, and `OnlyOutputData0x05` pads that take the USB report over Bluetooth |
 | Chromium [`xbox_hid_controller.cc`](https://chromium.googlesource.com/chromium/src/+/main/device/gamepad/xbox_hid_controller.cc) (BSD) | 2026-11 | the same output report driven on every OS over Bluetooth |
 | Windows [`Gamepad.SetVibration`](https://learn.microsoft.com/uwp/api/windows.gaming.input.gamepad.setvibration) | 2026-11 | `GamepadVibration`'s four motor fields and their 0..1 range |
 
@@ -1164,10 +1201,12 @@ and cable ↔ Bluetooth worked both ways without a restart —
 Windows.Gaming.Input's trigger motors do reach a wired pad. The player's wired
 DualShock 4 (`054c:05c4`) plays the dualshock frame: the block's tick, damage and
 Lightbar Health and Dimension all landed. Over Bluetooth the same pad took the
-reports without buzzing, its light blinking to the right colour for an instant
-on a block break: the signature of writes the adapter never delivers, which is
-why the gamepad collection now goes first and why a Bluetooth report takes the
-control pipe (§ above). Both changes need the retest. The
+reports without buzzing, its lightbar flashing white for an instant on every
+block break: the pad reads a 0x11 report with the USB offsets, so the blink bit
+it finds there is what flashes. A log of that retest also showed the writer
+asking for report 0x05 and the stack refusing it with `ERROR_INVALID_PARAMETER`
+once per frame, which is why the packet now depends on the report ID the pad
+declares (§ above). That one needs the retest over Bluetooth. The
 flat hit step, a splitscreen guest's triggers, the split's tick and a GameSir G7
 still need a physical check.
 
