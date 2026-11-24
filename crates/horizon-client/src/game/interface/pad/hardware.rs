@@ -424,7 +424,12 @@ impl Pads {
             self.devices.dualsense = gilrs.gamepads().any(|(_, pad)| is_dualsense(&pad));
             self.devices.xbox = gilrs.gamepads().any(|(_, pad)| is_xbox_pad(&pad));
             self.devices.dualshock = gilrs.gamepads().any(|(_, pad)| is_dualshock(&pad));
-            self.devices.xbox_target = xbox::Target::ANY;
+            // `Target::ANY` finds only Xbox One pads, so a lone DualShock 4 is named outright.
+            self.devices.xbox_target = gilrs
+                .gamepads()
+                .find(|(_, pad)| !self.devices.xbox && is_dualshock(pad))
+                .and_then(|(id, _)| xbox_target(gilrs, id))
+                .unwrap_or(xbox::Target::ANY);
             self.device = gilrs.gamepads().next().map(|(_, pad)| device_of(&pad));
             return PadState::default();
         };
