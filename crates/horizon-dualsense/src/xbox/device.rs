@@ -278,6 +278,13 @@ impl Xbox {
                             _ => {}
                         }
                         log_open(info, frame, transport, report);
+                        #[cfg(windows)]
+                        if std::env::var_os("HORIZON_CONTROLLER_PROBE").is_some()
+                            && frame == Frame::Dualshock
+                            && transport == Transport::Bluetooth
+                        {
+                            probe_bluetooth(&device);
+                        }
                         return Some(Ok(Xbox {
                             backend: Backend::Hid(device),
                             transport,
@@ -418,6 +425,73 @@ fn send_bluetooth<E: std::fmt::Display>(
 #[cfg(not(windows))]
 fn write_bluetooth(device: &HidDevice, report: &[u8]) -> std::result::Result<(), HidError> {
     device.write(report).map(|_| ())
+}
+
+/// A one-shot diagnostic for a DualShock 4 on Bluetooth, when `HORIZON_CONTROLLER_PROBE` is set:
+/// four reports, one per pair of layout and pipe, each buzzing for a second and a half and setting
+/// a distinct lightbar colour, then the motors stop. The player says which step did something and
+/// the log says which step was which, so "no vibration over Bluetooth" stops being a guess about
+/// which of the two the pad wants. It runs once, as the pad opens, before the game writes anything.
+#[cfg(windows)]
+fn probe_bluetooth(device: &HidDevice) {
+    log::info!(
+        "Horizon: controller: probe: four reports, 1.5 s each. Note which one buzzes or changes the lightbar: 1 = red, 2 = green, 3 = blue, 4 = white"
+    );
+    let steps = [
+        (false, false, [255, 0, 0]),
+        (false, true, [0, 255, 0]),
+        (true, false, [0, 0, 255]),
+        (true, true, [255, 255, 255]),
+    ];
+    for (index, (usb_layout, control_pipe, colour)) in steps.into_iter().enumerate() {
+        let step = index + 1;
+        let what = match (usb_layout, control_pipe) {
+            (false, false) => "Sony's report on the interrupt pipe",
+            (false, true) => "Sony's report on the control pipe",
+            (true, false) => "the USB layout on the interrupt pipe",
+            _ => "the USB layout on the control pipe",
+        };
+        log::info!("Horizon: controller: probe {step}/4: {what}, lightbar {colour:?}");
+        let buzz = Motors {
+            strong: 255,
+            weak: 255,
+            left_trigger: 0,
+            right_trigger: 0,
+        };
+        let sent = probe_write(device, buzz, colour, usb_layout, control_pipe);
+        log::info!("Horizon: controller: probe {step}/4: write -> {sent:?}");
+        std::thread::sleep(Duration::from_millis(1500));
+        let stopped = probe_write(device, Motors::STOP, colour, usb_layout, control_pipe);
+        log::info!("Horizon: controller: probe {step}/4: stop -> {stopped:?}");
+        std::thread::sleep(Duration::from_millis(1500));
+    }
+    log::info!("Horizon: controller: probe: done");
+}
+
+/// One probe report, on the pipe and in the layout the caller names.
+#[cfg(windows)]
+fn probe_write(
+    device: &HidDevice,
+    motors: Motors,
+    colour: [u8; 3],
+    usb_layout: bool,
+    control_pipe: bool,
+) -> std::result::Result<(), HidError> {
+    if usb_layout {
+        let report = dualshock::usb_layout_in_bluetooth(motors, Some(colour));
+        if control_pipe {
+            device.send_output_report(&report)
+        } else {
+            device.write(&report).map(|_| ())
+        }
+    } else {
+        let report = dualshock::bluetooth(motors, Some(colour));
+        if control_pipe {
+            device.send_output_report(&report)
+        } else {
+            device.write(&report).map(|_| ())
+        }
+    }
 }
 
 /// Which collection the reports go to, when `HORIZON_CONTROLLER_LOG` asks: a DualShock 4 lists a
