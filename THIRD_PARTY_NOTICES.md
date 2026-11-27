@@ -158,6 +158,16 @@ x86/x64 instead of the POPCNT instruction, which CPUs before Nehalem lack (#7264
 by The Pixelify Sans Project Authors, licensed under the SIL Open Font License 1.1
 (`crates/horizon-theme/fonts/OFL-PixelifySans.txt`).
 
+## GreatDocBrown controller glyphs
+
+`crates/horizon-client/assets/horizon/textures/gui/controller/{xb,psx,nx}_*.png` adapt
+[GreatDocBrown's Gamepad UI / Controller Prompts Pack](https://greatdocbrown.itch.io/gamepad-ui),
+released by its author under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Atreus171 directed and
+curated the Horizon variants, including the platform-specific D-pads, shared stick-click glyphs,
+sizing and placement. The controller and platform names identify layouts only; their owners do
+not endorse Horizon. See `CREDITS-GreatDocBrown.txt` beside the textures.
+
 ## Pixelarticons
 
 `crates/horizon-theme/icons/pixel/*.svg` are icons from

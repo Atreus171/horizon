@@ -44,6 +44,9 @@ class BakeBricolageTests(MissingArgumentTests):
         self.assert_asked_for_arguments("bake_bricolage.py", "source.ttf")
 
 class PadGlyphsTests(MissingArgumentTests):
+    def test_no_directory_asks_for_one(self):
+        self.assert_asked_for_arguments("pad_glyphs/gen.py")
+
     def test_a_flag_is_not_an_output_directory(self):
         # It used to create ./--help and fill it with 14 glyphs.
         self.assert_asked_for_arguments("pad_glyphs/gen.py", "--help")

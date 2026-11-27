@@ -11,8 +11,10 @@ Nothing. Minecraft Java 26.3 never calls GLFW's gamepad or joystick API, has
 no controller options and ships no button glyphs. Its only non-mouse UI input
 is keyboard focus navigation (`InputType.KEYBOARD_ARROW` / `KEYBOARD_TAB`:
 arrows and Tab move a focus ring between widgets). So controller support is
-Horizon's own feature. Its default buttons are Horizon's own; analog walking and toggle sneak follow
-Bedrock Edition on consoles.
+Horizon's own feature. Its default button glyphs adapt
+[GreatDocBrown's Gamepad UI / Controller Prompts Pack](https://greatdocbrown.itch.io/gamepad-ui)
+(CC0 1.0), curated for Horizon by Atreus171; analog walking and toggle sneak follow Bedrock Edition
+on consoles.
 
 ## Input layer
 
@@ -615,27 +617,27 @@ book's page text), the pad drives the pointer instead.
 
 ## Glyphs
 
-A button is drawn as Horizon's own art where its family has a picture, and otherwise as the label
-printed on the pad, in its colour, on a dark key (`pad_glyph.rs`; no Mojang assets, nothing from the
-player's jar). Whatever draws or measures a glyph goes through that module, asking for it by what the button
-does (a bound action or a menu job), never by a button: a rebinding or a pad's letters reach every glyph
-([ui-kit.md](ui-kit.md)).
+A button is drawn with the built-in GreatDocBrown-derived art where its family has a picture, and
+otherwise as the label printed on the pad (`pad_glyph.rs`; no Mojang assets, nothing from the
+player's jar). Whatever draws or measures a glyph goes through that module, asking for it by what the
+button does (a bound action or a menu job), never by a button: a rebinding or a pad's letters reaches
+every glyph ([ui-kit.md](ui-kit.md)).
 
 | Family | Art | Text |
 |---|---|---|
 | Xbox, also Auto, Steam Deck and anything unknown | `xb_*`: a b x y, lb rb lt rt, view menu, l3 r3, up down left right | none |
 | PlayStation | `psx_*`: cross circle square triangle, l1 r1 l2 r2, create options, l3 r3, up down left right | none |
-| Nintendo | `nx_*`, by what the pad prints: b a y x at south, east, west and north, l r zl zr, minus plus, l3 r3, up down left riEach family has its own file for every picture, so a family's art can change without touching another's.
-Only the sticks and the D-pad are the same picture in all three. Nintendo's letters are plain white, as the
-pad prints them, where Xbox's carry Xbox's colours. Text remains for what runs inside a line of text, and for
-an atlas without the sprite.
+| Nintendo | `nx_*`, by what the pad prints: b a y x at south, east, west and north, l r zl zr, minus plus, l3 r3, up down left right | none |
 
-Nintendo's art, Xbox's View and Menu and PlayStation's Create and Options are drawn by
-`tools/pad_glyphs/gen.py` (standard library only: `python3 tools/pad_glyphs/gen.py` rewrites them in place,
-byte for byte); the rest is hand-made. The script measures nothing at run time: the key shapes and bevel
-were measured from the hand-made art and typed in, so the set matches.
+Each family has its own file for every picture, so a family's art can change without touching
+another's. L3 and R3 share the Xbox-style GreatDocBrown pair; each family keeps its selected D-pad.
+Nintendo's letters are plain white, as the pad prints them, where Xbox's carry Xbox's colours. Text
+remains for what runs inside a line of text, and for an atlas without the sprite.
 
- the sprite.
+The native PNGs adapt GreatDocBrown's CC0 sheets under Atreus171's direction. Their source and
+adaptation credits are in `CREDITS-GreatDocBrown.txt` beside the textures and in
+`THIRD_PARTY_NOTICES.md`. `tools/pad_glyphs/gen.py` remains only as a legacy drawing helper and
+requires an explicit output directory; it does not regenerate these assets.
 
 The art is in `crates/horizon-client/assets/horizon/textures/gui/controller/`, built into the binary, one
 line of `pad_glyph::ART` per picture: a button with no line is text, and adding one is that line and its

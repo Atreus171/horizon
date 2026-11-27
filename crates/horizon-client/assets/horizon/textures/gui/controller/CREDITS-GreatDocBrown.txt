@@ -1,0 +1,21 @@
+ARTWORK AND LICENSE
+
+Original artwork:
+GreatDocBrown — Gamepad UI / Controller Prompts Pack
+https://greatdocbrown.itch.io/gamepad-ui
+
+License stated by the author:
+Creative Commons Zero 1.0 Universal (CC0 1.0)
+https://creativecommons.org/publicdomain/zero/1.0/
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Horizon adaptation:
+Player direction and variant curation: Atreus171
+Native integration: Horizon contributors
+
+The Xbox, PlayStation and Nintendo variants use adapted crops from the
+GreatDocBrown sheets. Platform-specific D-pads, shared stick-click glyphs,
+canvas sizing and placement follow Atreus171's local controller packs.
+
+Controller and platform names identify layouts only. Their owners do not
+endorse Horizon.

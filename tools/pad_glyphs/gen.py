@@ -1,8 +1,8 @@
-"""Draws the controller glyphs that have no hand-made art: Nintendo's letters, shoulders, triggers,
-− and +, Xbox's View and Menu, PlayStation's Create and Options. The rest of the set is hand-made.
+"""Legacy helper for drawing the controller glyph style that preceded the native GreatDocBrown set.
 
-Run from the repo root: python3 tools/pad_glyphs/gen.py [outdir] [name ...]
-The default outdir is the game's controller textures; names limit it to those glyphs.
+Run from the repo root: python3 tools/pad_glyphs/gen.py <outdir> [name ...]
+An explicit output directory is required so this helper cannot overwrite the native CC0 assets.
+Names limit the output to those glyphs.
 """
 import os
 import sys
@@ -13,9 +13,7 @@ import glyphlib as G
 from glyphlib import bowl, clip, minus, rect, rrect, seg, union
 from pngio import write_png
 
-TEXTURES = os.path.join(HERE, '..', '..', 'crates', 'horizon-client', 'assets', 'horizon',
-                        'textures', 'gui', 'controller')
-OUT = sys.argv[1] if len(sys.argv) > 1 else TEXTURES
+OUT = sys.argv[1] if len(sys.argv) > 1 else None
 SW = 1.50  # measured stem width: a full pixel and half the next
 SH = 1.30  # measured bar height
 TOP = 8.86  # measured cap line on the shoulders
@@ -143,9 +141,9 @@ GLYPHS = {
     'psx_options': (D22, 32, options_icon(), ICON),
 }
 
-if __name__ == '__main__' and any(argument.startswith('-') for argument in sys.argv[1:]):
-    # A flag is not an output directory: it used to create ./--help and fill it with glyphs.
-    sys.exit(__doc__.strip() + '\nUsage: python3 tools/pad_glyphs/gen.py [outdir] [name ...]')
+if __name__ == '__main__' and (OUT is None or any(argument.startswith('-') for argument in sys.argv[1:])):
+    # A flag is not an output directory.
+    sys.exit(__doc__.strip() + '\nUsage: python3 tools/pad_glyphs/gen.py <outdir> [name ...]')
 
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
